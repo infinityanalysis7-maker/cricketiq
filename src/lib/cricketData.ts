@@ -9,34 +9,39 @@ function stripFences(text: string) {
   return text.replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "").trim();
 }
 
+// Helper for timeout-wrapped fetch
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  return Promise.race([
+    promise,
+    new Promise<T>((_, reject) =>
+      setTimeout(() => reject(new Error("SEARCH_TIMEOUT")), timeoutMs)
+    ),
+  ]);
+}
+
 // 1. MATCHES SEARCH
 export const getLiveMatches = unstable_cache(
   async () => {
     try {
-      const prompt = `Search for "IPL 2026 today match schedule venue time IST". 
-      Return ONLY valid JSON:
-      {
-        "matches": [
-          { "id": "team1-vs-team2", "homeTeam": "...", "awayTeam": "...", "time": "...", "venue": "...", "isLive": false }
-        ],
-        "lastUpdated": "${new Date().toISOString()}"
-      }`;
+      const prompt = `Search for "IPL 2026 today match schedule". 
+      Return JSON: { "matches": [{ "id": "...", "homeTeam": "...", "awayTeam": "...", "time": "...", "venue": "..." }] }`;
 
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          tools: [{ googleSearch: {} } as any],
-        }
-      });
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        8000 // 8s limit
+      );
 
       return JSON.parse(stripFences(result.text || "{}"));
     } catch (error) {
-      console.error("Gemini Search Error (Matches):", error);
-      throw error;
+      console.error("Matches Search failed/timed out:", error);
+      return { matches: [], isPartial: true };
     }
   },
-  ["live-matches"],
+  ["live-matches-v2"],
   { revalidate: 1800 }
 );
 
@@ -44,31 +49,24 @@ export const getLiveMatches = unstable_cache(
 export const getMatchPredictionData = unstable_cache(
   async (matchId: string) => {
     try {
-      const prompt = `Search for "IPL 2026 ${matchId.replace("-vs-", " vs ")} head to head stats, recent form, pitch report, weather".
-      Return ONLY valid JSON:
-      {
-        "headToHead": "...",
-        "currentForm": { "homeTeam": "W L W...", "awayTeam": "L W W..." },
-        "pitchReport": "...",
-        "weather": "...",
-        "aiPrediction": { "winner": "...", "confidence": 75, "explanation": "..." }
-      }`;
+      const prompt = `Quick search: IPL 2026 ${matchId.replace("-vs-", " vs ")} stats and pitch.
+      Return JSON: { "headToHead": "...", "aiPrediction": { "winner": "...", "confidence": 70, "explanation": "..." } }`;
 
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          tools: [{ googleSearch: {} } as any],
-        }
-      });
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        8000
+      );
 
       return JSON.parse(stripFences(result.text || "{}"));
     } catch (error) {
-      console.error("Gemini Search Error (Prediction):", error);
-      throw error;
+      return { headToHead: "Live data unavailable.", aiPrediction: { winner: "Analysis Pending", confidence: 50, explanation: "Searching..." } };
     }
   },
-  ["match-prediction"],
+  ["match-prediction-v2"],
   { revalidate: 120 }
 );
 
@@ -76,27 +74,21 @@ export const getMatchPredictionData = unstable_cache(
 export const getLatestNews = unstable_cache(
   async () => {
     try {
-      const prompt = `Search for "IPL 2026 latest news today cricket updates".
-      Return ONLY news from the last 24 hours. Return ONLY valid JSON:
-      [
-        { "title": "...", "aiSummary": "...", "source": "...", "timestamp": "..." }
-      ]`;
-
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          tools: [{ googleSearch: {} } as any],
-        }
-      });
-
+      const prompt = `Search for "IPL 2026 news today". Return JSON array of 5 news items.`;
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        8000
+      );
       return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
-      console.error("Gemini Search Error (News):", error);
-      throw error;
+      return [];
     }
   },
-  ["latest-news"],
+  ["latest-news-v2"],
   { revalidate: 900 }
 );
 
@@ -104,28 +96,21 @@ export const getLatestNews = unstable_cache(
 export const getDynamicIQTest = unstable_cache(
   async () => {
     try {
-      const prompt = `Search for "IPL 2026 latest stats, match results, player records this season".
-      Generate 10 multiple-choice questions based on REAL RECENT EVENTS.
-      Return ONLY valid JSON:
-      [
-        { "id": 1, "question": "...", "options": ["...", "..."], "correctAnswerIndex": 0, "explanation": "..." }
-      ]`;
-
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          tools: [{ googleSearch: {} } as any],
-        }
-      });
-
+      const prompt = `Generate 10 MCQ for IPL 2026 today. JSON: [{id, question, options, correctAnswerIndex, explanation}]`;
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        8000
+      );
       return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
-      console.error("Gemini Search Error (IQ):", error);
-      throw error;
+      return { error: "Timeout" };
     }
   },
-  ["daily-iq"],
+  ["daily-iq-v2"],
   { revalidate: 86400 }
 );
 
@@ -133,26 +118,20 @@ export const getDynamicIQTest = unstable_cache(
 export const getPointsTable = unstable_cache(
   async () => {
     try {
-      const prompt = `Search for "IPL 2026 points table latest standings".
-      Return ONLY valid JSON:
-      [
-        { "team": "...", "played": 10, "won": 7, "lost": 3, "points": 14, "nrr": "+0.55" }
-      ]`;
-
-      const result = await genAI.models.generateContent({
-        model: "gemini-2.0-flash",
-        contents: [{ role: "user", parts: [{ text: prompt }] }],
-        config: {
-          tools: [{ googleSearch: {} } as any],
-        }
-      });
-
+      const prompt = `Search for "IPL 2026 points table". Return JSON array of standings.`;
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        8000
+      );
       return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
-      console.error("Gemini Search Error (Points):", error);
-      throw error;
+      return [];
     }
   },
-  ["points-table"],
+  ["points-table-v2"],
   { revalidate: 3600 }
 );

@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 export default function PointsTablePage() {
   return (
