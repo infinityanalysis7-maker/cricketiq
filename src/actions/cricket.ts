@@ -10,28 +10,35 @@ export async function getTodayMatches() {
   try {
     const response = await ai.models.generateContent({
       model: "gemini-2.5-pro",
-      contents: "What IPL matches are scheduled for today? Return a JSON array. Each object should have: id (string, e.g., 'csk-vs-rcb'), homeTeam (string), awayTeam (string), time (string). If no IPL match today, return an empty array []. Use Google Search to get the real-time schedule.",
+      contents: `Search exactly for: "IPL 2026 today match schedule". 
+      Return a JSON object with this exact schema:
+      {
+        "matches": [
+          { "id": "home-vs-away", "homeTeam": "HOME", "awayTeam": "AWAY", "time": "Time IST" }
+        ],
+        "nextMatchMessage": "If no match today, write: No match today, next match is [date] between [teams]. Otherwise leave empty."
+      }
+      If there is a match today, populate the "matches" array. If no match today, leave "matches" array empty and populate "nextMatchMessage".
+      Do not hallucinate fake matches.`,
       config: {
         tools: [{ googleSearch: {} }],
         responseMimeType: "application/json",
       },
     });
 
-    return JSON.parse(response.text || "[]");
+    const data = JSON.parse(response.text || '{"matches":[]}');
+    return data;
   } catch (error) {
     console.error("Error fetching today's matches:", error);
-    // Fallback data if API fails or is not configured
-    return [
-      { id: "csk-vs-mi", homeTeam: "CSK", awayTeam: "MI", time: "7:30 PM IST" },
-      { id: "rcb-vs-kkr", homeTeam: "RCB", awayTeam: "KKR", time: "3:30 PM IST" }
-    ];
+    return { error: "Could not fetch live data. Please refresh in a moment." };
   }
 }
 
 export async function getMatchPrediction(matchId: string) {
   try {
     const prompt = `
-    Analyze the IPL match ${matchId} happening today. Provide a detailed pre-match analysis.
+    Search for "IPL 2026 ${matchId.replace("-VS-", " vs ")} match stats, pitch report, and prediction".
+    Analyze the real IPL 2026 match ${matchId}.
     Return the response as a JSON object with the following schema:
     {
       "matchId": "${matchId}",
@@ -44,12 +51,12 @@ export async function getMatchPrediction(matchId: string) {
       "weather": "Weather conditions for the match time",
       "keyMatchups": ["Matchup 1", "Matchup 2"],
       "aiPrediction": {
-        "winner": "Predicted winning team",
+        "winner": "Predicted winning team based on real search data",
         "confidence": 75,
-        "explanation": "Why AI thinks this team will win"
+        "explanation": "Why AI thinks this team will win based on search results"
       }
     }
-    Use Google Search to get the most accurate and real-time data.
+    Use Google Search to get the most accurate and real-time data. Never invent fake stats.
     `;
 
     const response = await ai.models.generateContent({
@@ -64,18 +71,30 @@ export async function getMatchPrediction(matchId: string) {
     return JSON.parse(response.text || "{}");
   } catch (error) {
     console.error("Error fetching match prediction:", error);
-    return {
-      matchId,
-      headToHead: "CSK has won 20, MI has won 21 matches in their history.",
-      currentForm: { homeTeam: "W W L", awayTeam: "W L W" },
-      pitchReport: "Batting friendly pitch with some help for spinners in the second innings.",
-      weather: "Clear skies, 30°C, 60% humidity.",
-      keyMatchups: ["Dhoni vs Bumrah", "Rohit vs Jadeja"],
-      aiPrediction: {
-        winner: "CSK",
-        confidence: 65,
-        explanation: "CSK has a strong home advantage and their spinners are in top form."
-      }
-    };
+    return { error: "Could not fetch live prediction. Please refresh in a moment." };
+  }
+}
+
+export async function getLatestNews() {
+  try {
+    const response = await ai.models.generateContent({
+      model: "gemini-2.5-pro",
+      contents: `Search exactly for: "IPL 2026 latest news today".
+      Find at least 5 real, actual news articles published in the last 24 hours about IPL 2026.
+      Return a JSON array of objects with schema:
+      [
+        { "title": "Real News Title", "aiSummary": "1 sentence summary", "time": "e.g., 2h ago" }
+      ]
+      DO NOT invent fake news. Only return real news found via search.`,
+      config: {
+        tools: [{ googleSearch: {} }],
+        responseMimeType: "application/json",
+      },
+    });
+
+    return JSON.parse(response.text || "[]");
+  } catch (error) {
+    console.error("Error fetching news:", error);
+    return { error: "Could not fetch live news. Please refresh in a moment." };
   }
 }

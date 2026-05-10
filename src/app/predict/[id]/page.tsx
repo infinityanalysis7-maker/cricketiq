@@ -3,9 +3,13 @@ import { Brain, Cloud, History, TrendingUp, Share2, AlertCircle, Flame } from "l
 import Link from "next/link";
 import { Suspense } from "react";
 
+export const dynamic = "force-dynamic";
+
 export default async function MatchPredictionPage({ params }: { params: { id: string } }) {
-  // Extract teams from id like csk-vs-mi
-  const [homeTeam, awayTeam] = params.id.toUpperCase().split("-VS-");
+  // Extract teams from id safely
+  const idParts = params.id.toUpperCase().split("-VS-");
+  const homeTeam = idParts[0] || "TEAM A";
+  const awayTeam = idParts[1] || "TEAM B";
 
   return (
     <div className="min-h-screen pb-24">
@@ -38,6 +42,17 @@ export default async function MatchPredictionPage({ params }: { params: { id: st
 
 async function PredictionContent({ matchId }: { matchId: string }) {
   const data = await getMatchPrediction(matchId);
+
+  if (data.error) {
+    return (
+      <div className="p-4 animate-slide-up">
+        <div className="bg-red-900/20 border border-red-500/50 rounded-2xl p-6 text-center flex flex-col items-center">
+          <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+          <p className="text-red-400 font-bold">{data.error}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 space-y-6 animate-slide-up">

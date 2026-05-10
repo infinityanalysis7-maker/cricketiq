@@ -16,10 +16,20 @@ export default function IQTestPage() {
   const [isAnswered, setIsAnswered] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const [error, setError] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadQuestions() {
-      const data = await getDailyIQTest();
-      setQuestions(data);
+      try {
+        const data = await getDailyIQTest();
+        if ("error" in data) {
+          setError(data.error as string);
+        } else {
+          setQuestions(data);
+        }
+      } catch (err) {
+        setError("Could not generate today's test. Please refresh in a moment.");
+      }
       setLoading(false);
     }
     loadQuestions();
@@ -74,6 +84,21 @@ export default function IQTestPage() {
         <Brain className="w-16 h-16 text-primary animate-pulse-glow rounded-full mb-4" />
         <h2 className="text-xl font-bold">Generating Today's Test...</h2>
         <p className="text-gray-400 text-sm mt-2">Consulting the cricket gods</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center p-4 text-center">
+        <div className="bg-red-900/20 border border-red-500/50 rounded-2xl p-6">
+          <Brain className="w-12 h-12 text-red-500 mb-4 mx-auto" />
+          <h2 className="text-xl font-bold text-red-400 mb-2">Error</h2>
+          <p className="text-gray-300">{error}</p>
+          <button onClick={() => window.location.reload()} className="mt-4 bg-primary text-black font-bold py-2 px-6 rounded-full">
+            Try Again
+          </button>
+        </div>
       </div>
     );
   }

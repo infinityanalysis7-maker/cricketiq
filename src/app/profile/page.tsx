@@ -2,18 +2,27 @@
 
 import { Settings, Shield, Target, Flame, Share2, Award, Zap } from "lucide-react";
 import Link from "next/link";
+import { useUser } from "@clerk/nextjs";
 
 export default function ProfilePage() {
+  const { user, isLoaded } = useUser();
+  
   const profile = {
-    name: "ThalaFan99",
-    team: "Chennai Super Kings",
-    iqScore: 94,
-    accuracy: 78,
-    streak: 12,
-    predictionsMade: 45,
-    personality: "The Analyst 🤓 - You rely on stats more than emotions.",
-    badges: ["Legend", "Early Bird", "Perfect Predictor", "Derby King"]
+    name: user?.firstName || "Cricket Fan",
+    team: "NEUTRAL",
+    iqScore: 0,
+    accuracy: 0,
+    streak: 0,
+    predictionsMade: 0,
+    personality: "The Rookie 🌱 - Time to start predicting!",
+    badges: ["Newcomer"]
   };
+
+  const recentPredictions: any[] = []; // Real DB call goes here later
+
+  if (!isLoaded) {
+    return <div className="min-h-screen flex items-center justify-center">Loading Profile...</div>;
+  }
 
   return (
     <div className="min-h-screen pb-24 p-4 animate-slide-up pt-8">
@@ -86,27 +95,32 @@ export default function ProfilePage() {
 
       {/* Prediction Tracker */}
       <h3 className="font-bold mb-4">Recent Predictions</h3>
-      <div className="bg-card-bg border border-border rounded-2xl p-4 space-y-3 mb-6">
-        {[
-          { match: "CSK vs MI", pick: "CSK", correct: true },
-          { match: "RCB vs KKR", pick: "RCB", correct: false },
-          { match: "GT vs RR", pick: "RR", correct: true },
-        ].map((pred, i) => (
-          <div key={i} className="flex justify-between items-center p-3 bg-black rounded-xl border border-white/5">
-            <div>
-              <p className="text-sm font-bold text-gray-300">{pred.match}</p>
-              <p className="text-xs text-gray-500 mt-0.5">Picked: {pred.pick}</p>
-            </div>
-            {pred.correct ? (
-              <span className="bg-green-500/20 text-green-500 text-xs font-bold px-2 py-1 rounded">WON</span>
-            ) : (
-              <span className="bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded">LOST</span>
-            )}
+      <div className="bg-card-bg border border-border rounded-2xl p-4 mb-6">
+        {recentPredictions.length === 0 ? (
+          <div className="text-center py-6 text-gray-500 text-sm">
+            You haven't made any predictions yet. <br />
+            <Link href="/" className="text-primary font-bold mt-2 inline-block">Predict Now</Link>
           </div>
-        ))}
-        <button className="w-full text-center text-sm text-secondary font-bold pt-2 mt-2 border-t border-white/5">
-          View All History
-        </button>
+        ) : (
+          <div className="space-y-3">
+            {recentPredictions.map((pred, i) => (
+              <div key={i} className="flex justify-between items-center p-3 bg-black rounded-xl border border-white/5">
+                <div>
+                  <p className="text-sm font-bold text-gray-300">{pred.match}</p>
+                  <p className="text-xs text-gray-500 mt-0.5">Picked: {pred.pick}</p>
+                </div>
+                {pred.correct ? (
+                  <span className="bg-green-500/20 text-green-500 text-xs font-bold px-2 py-1 rounded">WON</span>
+                ) : (
+                  <span className="bg-red-500/20 text-red-500 text-xs font-bold px-2 py-1 rounded">LOST</span>
+                )}
+              </div>
+            ))}
+            <button className="w-full text-center text-sm text-secondary font-bold pt-2 mt-2 border-t border-white/5">
+              View All History
+            </button>
+          </div>
+        )}
       </div>
 
       {/* Pro Banner */}
@@ -130,13 +144,13 @@ export default function ProfilePage() {
         </p>
         
         <div className="bg-black border border-white/10 rounded-xl p-3 flex justify-between items-center mb-4">
-          <span className="text-xs font-mono text-gray-400 truncate mr-2">cricketiq.in/join/thala99</span>
+          <span className="text-xs font-mono text-gray-400 truncate mr-2">cricketiq.in/join/{user?.id || "guest"}</span>
           <button className="text-primary text-xs font-bold uppercase shrink-0 hover:text-primary/80">Copy Link</button>
         </div>
 
         <button 
           onClick={() => {
-            const text = "Join India's ultimate AI Cricket Community! Sign up with my link and we both get 1 week of CricketIQ Pro for FREE! 🏏🔥 https://cricketiq.in/join/thala99";
+            const text = `Join India's ultimate AI Cricket Community! Sign up with my link and we both get 1 week of CricketIQ Pro for FREE! 🏏🔥 https://cricketiq.in/join/${user?.id || "guest"}`;
             if (navigator.share) {
               navigator.share({ title: 'CricketIQ Pro Referral', text });
             } else {
@@ -151,7 +165,7 @@ export default function ProfilePage() {
         <div className="border-t border-white/5 pt-4 flex items-center justify-between">
           <span className="text-sm text-gray-300">Friends Joined</span>
           <div className="flex items-center gap-2">
-            <span className="bg-secondary/20 text-secondary text-lg font-black px-3 py-1 rounded-lg">3</span>
+            <span className="bg-secondary/20 text-secondary text-lg font-black px-3 py-1 rounded-lg">0</span>
             <span className="text-xs text-gray-500 font-bold uppercase">Success</span>
           </div>
         </div>

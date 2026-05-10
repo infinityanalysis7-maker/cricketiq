@@ -25,9 +25,12 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark">
-        <body className={`${inter.className} bg-background text-foreground min-h-screen pb-16 overflow-x-hidden`}>
-          <main className="max-w-md mx-auto min-h-screen relative border-x border-border/30 bg-black shadow-2xl">
-            {children}
+        <body className={`${inter.className} bg-[#050505] text-foreground min-h-screen overflow-x-hidden flex justify-center`}>
+          <main className="w-full max-w-6xl mx-auto min-h-screen relative border-x border-border/30 bg-black shadow-2xl flex flex-col md:flex-row">
+            {/* Desktop Sidebar / Topbar goes here or handled in BottomNav */}
+            <div className="flex-1 w-full max-w-2xl mx-auto relative pb-20 md:pb-0 md:pt-20">
+              {children}
+            </div>
             <BottomNav />
             <PWAPrompt />
           </main>

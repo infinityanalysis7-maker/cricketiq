@@ -1,9 +1,29 @@
 import Link from "next/link";
-import { getTodayMatches } from "@/actions/cricket";
-import { Trophy, ArrowRight, Flame } from "lucide-react";
+import { getTodayMatches, getLatestNews } from "@/actions/cricket";
+import { Trophy, ArrowRight, Flame, AlertCircle } from "lucide-react";
+import { unstable_cache } from "next/cache";
+
+// Cache for 30 minutes
+const getCachedMatches = unstable_cache(
+  async () => getTodayMatches(),
+  ['today-matches'],
+  { revalidate: 1800 }
+);
+
+const getCachedNews = unstable_cache(
+  async () => getLatestNews(),
+  ['latest-news'],
+  { revalidate: 1800 }
+);
 
 export default async function Home() {
-  const matches = await getTodayMatches();
+  const matchData = await getCachedMatches();
+  const newsData = await getCachedNews();
+
+  const matches = matchData.matches || [];
+  const nextMatchMessage = matchData.nextMatchMessage || "No IPL matches scheduled for today.";
+  const matchError = matchData.error;
+  const newsError = newsData.error;
 
   return (
     <div className="p-4 space-y-6 animate-slide-up">
@@ -28,9 +48,14 @@ export default async function Home() {
           </span>
         </div>
 
-        {matches.length === 0 ? (
+        {matchError ? (
+          <div className="bg-red-900/20 border border-red-500/50 rounded-2xl p-6 text-center flex flex-col items-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+            <p className="text-red-400 font-bold">{matchError}</p>
+          </div>
+        ) : matches.length === 0 ? (
           <div className="bg-card-bg border border-border rounded-2xl p-6 text-center">
-            <p className="text-gray-400">No IPL matches scheduled for today.</p>
+            <p className="text-gray-300 font-bold text-lg">{nextMatchMessage}</p>
           </div>
         ) : (
           <div className="space-y-4">
@@ -40,32 +65,34 @@ export default async function Home() {
                   <div className="absolute inset-0 bg-gradient-to-r from-primary/5 to-secondary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   
                   <div className="flex justify-between items-center mb-4">
-                    <span className="text-xs text-gray-400 font-medium">{match.time}</span>
+                     <span className="text-xs text-gray-400 font-medium">{match.time}</span>
                     <span className="text-[10px] bg-secondary/20 text-secondary px-2 py-0.5 rounded-full font-bold">
                       AI READY
                     </span>
                   </div>
                   
                   <div className="flex justify-between items-center">
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-black rounded-full border-2 border-border flex items-center justify-center font-black text-xl mb-2">
-                        {match.homeTeam}
+                    <div className="flex flex-col items-center flex-1">
+                      <div className="w-16 h-16 bg-black rounded-full border-2 border-border flex items-center justify-center font-black text-xl mb-2 text-center text-[10px] break-words">
+                        {match.homeTeam.substring(0,3)}
                       </div>
+                      <span className="text-xs font-bold truncate max-w-[80px]">{match.homeTeam}</span>
                     </div>
                     
-                    <div className="flex flex-col items-center">
+                    <div className="flex flex-col items-center px-2">
                       <span className="text-xs text-gray-500 font-bold mb-1">VS</span>
                       <Trophy className="w-5 h-5 text-gray-700" />
                     </div>
 
-                    <div className="flex flex-col items-center">
-                      <div className="w-16 h-16 bg-black rounded-full border-2 border-border flex items-center justify-center font-black text-xl mb-2">
-                        {match.awayTeam}
+                    <div className="flex flex-col items-center flex-1">
+                      <div className="w-16 h-16 bg-black rounded-full border-2 border-border flex items-center justify-center font-black text-xl mb-2 text-center text-[10px] break-words">
+                         {match.awayTeam.substring(0,3)}
                       </div>
+                      <span className="text-xs font-bold truncate max-w-[80px]">{match.awayTeam}</span>
                     </div>
                   </div>
 
-                  <div className="mt-4 pt-4 border-t border-border flex justify-between items-center">
+                  <div className="mt-4 pt-4 border-t border-border flex justify-between items-center relative z-10">
                     <span className="text-sm font-semibold text-gray-300">Predict Now</span>
                     <ArrowRight className="w-4 h-4 text-primary" />
                   </div>
@@ -99,27 +126,27 @@ export default async function Home() {
           </span>
         </div>
         <div className="space-y-4">
-          {[
-            {
-              title: "BCCI announces new rule for Impact Player",
-              aiSummary: "Teams can now name 5 substitutes instead of 4. This means more flexibility for spinners on turning tracks.",
-              time: "2h ago"
-            },
-            {
-              title: "Kohli's statement on his strike rate debate",
-              aiSummary: "Kohli hit back at critics, saying he knows how to win games and his stats speak for themselves. The debate continues.",
-              time: "5h ago"
-            }
-          ].map((news, i) => (
-            <div key={i} className="bg-card-bg border border-border rounded-2xl p-4">
-              <h3 className="font-bold text-sm mb-2">{news.title}</h3>
-              <div className="bg-black/50 p-3 rounded-xl border border-white/5 flex gap-2">
-                <span className="text-xl">🤖</span>
-                <p className="text-xs text-gray-300 leading-relaxed italic">"{news.aiSummary}"</p>
-              </div>
-              <p className="text-[10px] text-gray-500 mt-3 font-bold">{news.time}</p>
+          {newsError ? (
+            <div className="bg-red-900/20 border border-red-500/50 rounded-2xl p-6 text-center flex flex-col items-center">
+              <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
+              <p className="text-red-400 font-bold">{newsError}</p>
             </div>
-          ))}
+          ) : newsData.length === 0 ? (
+            <div className="bg-card-bg border border-border rounded-2xl p-6 text-center">
+              <p className="text-gray-400">No recent news found.</p>
+            </div>
+          ) : (
+            newsData.map((news: any, i: number) => (
+              <div key={i} className="bg-card-bg border border-border rounded-2xl p-4 hover:border-primary transition-colors">
+                <h3 className="font-bold text-sm mb-2">{news.title}</h3>
+                <div className="bg-black/50 p-3 rounded-xl border border-white/5 flex gap-2">
+                  <span className="text-xl">🤖</span>
+                  <p className="text-xs text-gray-300 leading-relaxed italic">"{news.aiSummary}"</p>
+                </div>
+                <p className="text-[10px] text-gray-500 mt-3 font-bold">{news.time}</p>
+              </div>
+            ))
+          )}
         </div>
       </section>
     </div>
