@@ -19,28 +19,24 @@ export async function GET() {
   }
 
   try {
+    const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: `Search for: "IPL 2026 today match schedule ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}".
-      Return a JSON object with this EXACT schema (no extra text, only JSON):
+      contents: `Today's date is ${today}. 
+      What IPL 2026 matches are scheduled for today? 
+      Return ONLY a valid JSON object, no markdown, no extra text:
       {
         "matches": [
-          { "id": "team1-vs-team2", "homeTeam": "Team Name", "awayTeam": "Team Name", "time": "7:30 PM IST", "venue": "Stadium Name" }
+          { "id": "team1-vs-team2", "homeTeam": "Full Team Name", "awayTeam": "Full Team Name", "time": "7:30 PM IST", "venue": "Stadium Name" }
         ],
-        "nextMatchMessage": "No match today. Next match: [date] — [Team A] vs [Team B]"
+        "nextMatchMessage": "If no match today: No match today. Next match: [date] — [Team A] vs [Team B]. If matches today: leave empty string."
       }
-      Rules:
-      - If there IS a match today: fill "matches" array, leave "nextMatchMessage" as empty string ""
-      - If there is NO match today: leave "matches" as [], fill "nextMatchMessage"
-      - NEVER invent matches. Only real IPL 2026 schedule.
-      - id must be lowercase hyphenated, e.g. "rcb-vs-csk"`,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-      },
+      Use your knowledge of the IPL 2026 schedule. If you don't know the exact schedule, return an empty matches array with a helpful nextMatchMessage.`,
     });
 
-    const text = response.text?.trim() || '{"matches":[],"nextMatchMessage":"No matches found."}';
+    // Strip markdown code fences if present
+    let text = response.text?.trim() || '{"matches":[]}';
+    text = text.replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "");
     const data = JSON.parse(text);
 
     cache = { data, timestamp: Date.now() };

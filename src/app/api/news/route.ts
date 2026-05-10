@@ -17,25 +17,19 @@ export async function GET() {
   }
 
   try {
+    const today = new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
     const response = await ai.models.generateContent({
       model: "gemini-2.0-flash",
-      contents: `Search for: "IPL 2026 cricket news today ${new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}".
-      Find 5 real IPL 2026 news articles from the past 48 hours.
-      Return a JSON array ONLY (no extra text):
+      contents: `Today is ${today}. List 5 recent IPL 2026 cricket news headlines and summaries.
+      Return ONLY a valid JSON array, no markdown, no extra text:
       [
-        { "title": "Exact article headline", "aiSummary": "One sentence summary of the article", "time": "X hours ago or Today" }
+        { "title": "News headline here", "aiSummary": "One sentence summary.", "time": "Today" }
       ]
-      Rules:
-      - Return EXACTLY 5 items
-      - Only real news. No invented headlines.
-      - Summaries must be in simple English, 1 sentence max.`,
-      config: {
-        tools: [{ googleSearch: {} }],
-        responseMimeType: "application/json",
-      },
+      Return exactly 5 items. Use your knowledge of IPL 2026 events, transfers, match results, and team news.`,
     });
 
-    const text = response.text?.trim() || "[]";
+    let text = response.text?.trim() || "[]";
+    text = text.replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "");
     const data = JSON.parse(text);
     const articles = Array.isArray(data) ? data : [];
 
