@@ -126,3 +126,25 @@ export const getPointsTable = unstable_cache(
   ["points-table-v3"],
   { revalidate: 3600 }
 );
+
+// 5. IQ TEST GENERATION
+export const getDynamicIQTest = unstable_cache(
+  async () => {
+    try {
+      const prompt = `Generate 10 MCQ for IPL 2026 today May 11. JSON: [{id, question, options, correctAnswerIndex, explanation}]`;
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        9000
+      );
+      return JSON.parse(stripFences(result.text || "[]"));
+    } catch (error) {
+      return [];
+    }
+  },
+  ["daily-iq-v3"],
+  { revalidate: 86400 }
+);
