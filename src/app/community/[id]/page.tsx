@@ -1,152 +1,92 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, Flame, ArrowUpCircle, ArrowDownCircle, AlertTriangle, Send } from "lucide-react";
-import { getDebatePosts, checkToxicity } from "@/actions/community";
+import { ArrowLeft, Swords, MessageSquare, Send, Flame } from "lucide-react";
 
-export default function DebateRoomPage({ params }: { params: { id: string } }) {
-  const [homeTeam, awayTeam] = params.id.toUpperCase().split("-VS-");
-  const [posts, setPosts] = useState<any[]>([]);
-  const [newTake, setNewTake] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [warning, setWarning] = useState<string | null>(null);
-
-  useEffect(() => {
-    async function loadPosts() {
-      const data = await getDebatePosts(params.id);
-      setPosts(data);
-    }
-    loadPosts();
-  }, [params.id]);
-
-  const handlePostTake = async () => {
-    if (!newTake.trim()) return;
-    
-    setIsSubmitting(true);
-    setWarning(null);
-
-    // AI Toxicity Check
-    const toxicityResult = await checkToxicity(newTake);
-    
-    if (toxicityResult.isToxic) {
-      setWarning(toxicityResult.warningMessage || "Your comment violates our community guidelines. Please keep it clean.");
-      setIsSubmitting(false);
-      return;
-    }
-
-    // Success - add to local state
-    const newPost = {
-      id: Date.now().toString(),
-      user: { name: "You", team: "NEUTRAL", avatar: "😎" },
-      content: newTake,
-      upvotes: 0,
-      downvotes: 0,
-      time: "Just now",
-      isHottest: false
-    };
-
-    setPosts([newPost, ...posts]);
-    setNewTake("");
-    setIsSubmitting(false);
-  };
-
-  const handleVote = (id: string, type: 'up' | 'down') => {
-    setPosts(posts.map(post => {
-      if (post.id === id) {
-        return {
-          ...post,
-          upvotes: type === 'up' ? post.upvotes + 1 : post.upvotes,
-          downvotes: type === 'down' ? post.downvotes + 1 : post.downvotes
-        };
-      }
-      return post;
-    }));
-  };
-
+export default async function FanWarRoom({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const matchId = resolvedParams.id;
+  const teams = matchId.split("-vs-").map(t => t.toUpperCase());
+  
   return (
-    <div className="min-h-screen pb-32 flex flex-col">
+    <div className="min-h-screen pb-20 flex flex-col animate-slide-up">
       {/* Header */}
-      <div className="bg-gradient-to-b from-primary/20 to-black p-4 pt-8 sticky top-0 z-20 backdrop-blur-md">
-        <Link href="/community" className="text-gray-400 text-sm mb-4 inline-block">
-          <ArrowLeft className="w-5 h-5 inline mr-1" /> Back to Wars
-        </Link>
-        <div className="flex justify-between items-center mt-2">
-          <h1 className="text-2xl font-black">{homeTeam} vs {awayTeam}</h1>
-          <div className="flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-            </span>
-            <span className="text-xs font-bold text-red-500">LIVE</span>
+      <div className="bg-card-bg border-b border-border p-4 flex items-center justify-between sticky top-0 z-20">
+        <div className="flex items-center gap-3">
+          <Link href="/community" className="text-gray-400">
+            <ArrowLeft className="w-6 h-6" />
+          </Link>
+          <div>
+            <h1 className="text-sm font-black">{teams[0]} vs {teams[1]}</h1>
+            <div className="flex items-center gap-1">
+              <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" />
+              <span className="text-[10px] text-gray-500 font-bold uppercase tracking-widest">2.4K Fans Online</span>
+            </div>
           </div>
+        </div>
+        <div className="bg-primary/10 px-3 py-1 rounded-full flex items-center gap-1.5 border border-primary/20">
+          <Swords className="w-3.5 h-3.5 text-primary" />
+          <span className="text-[10px] font-black text-primary">FAN WAR</span>
         </div>
       </div>
 
-      {/* Posts Feed */}
-      <div className="flex-1 p-4 space-y-4">
-        {posts.map((post) => (
-          <div key={post.id} className={`bg-card-bg border rounded-2xl p-4 transition-all animate-slide-up ${post.isHottest ? 'border-primary shadow-[0_0_15px_rgba(255,130,0,0.2)]' : 'border-border'}`}>
-            {post.isHottest && (
-              <div className="flex items-center gap-1 text-primary text-xs font-bold mb-3 bg-primary/10 w-fit px-2 py-1 rounded">
-                <Flame className="w-3 h-3" /> HOTTEST TAKE TODAY
-              </div>
-            )}
-            
-            <div className="flex items-center justify-between mb-2">
-              <div className="flex items-center gap-2">
-                <span className="text-xl">{post.user.avatar}</span>
-                <div>
-                  <h4 className="font-bold text-sm text-white">{post.user.name}</h4>
-                  <span className="text-[10px] text-gray-500">{post.time} • {post.user.team} Fan</span>
-                </div>
-              </div>
+      {/* Chat Area */}
+      <div className="flex-1 p-4 space-y-6 overflow-y-auto">
+        <div className="flex justify-center">
+          <div className="bg-white/5 border border-white/10 px-4 py-1 rounded-full text-[10px] text-gray-500 font-bold uppercase tracking-widest">
+            Today
+          </div>
+        </div>
+
+        <div className="flex gap-3">
+          <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-xs font-bold text-white shrink-0">MI</div>
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <span className="text-xs font-bold text-blue-400">Akash_Ambani_Fan</span>
+              <span className="text-[10px] text-gray-600">7:42 PM</span>
             </div>
-
-            <p className="text-sm text-gray-300 mb-4 leading-relaxed">{post.content}</p>
-
-            <div className="flex items-center justify-between border-t border-white/5 pt-3">
-              <div className="flex items-center gap-4">
-                <button onClick={() => handleVote(post.id, 'up')} className="flex items-center gap-1 text-gray-400 hover:text-secondary transition-colors">
-                  <ArrowUpCircle className="w-5 h-5" />
-                  <span className="text-xs font-bold">{post.upvotes}</span>
-                </button>
-                <button onClick={() => handleVote(post.id, 'down')} className="flex items-center gap-1 text-gray-400 hover:text-red-400 transition-colors">
-                  <ArrowDownCircle className="w-5 h-5" />
-                  <span className="text-xs font-bold">{post.downvotes}</span>
-                </button>
-              </div>
-              <button className="text-xs font-bold text-gray-500 hover:text-white transition-colors">Reply</button>
+            <div className="bg-white/5 border border-white/10 p-3 rounded-2xl rounded-tl-none text-sm text-gray-300">
+              Imagine thinking {teams[1]} can beat us at Wankhede lol. 🏆🏆🏆🏆🏆
             </div>
           </div>
-        ))}
+        </div>
+
+        <div className="flex gap-3 flex-row-reverse">
+          <div className="w-8 h-8 rounded-full bg-red-500 flex items-center justify-center text-xs font-bold text-white shrink-0">RR</div>
+          <div className="text-right">
+            <div className="flex items-center gap-2 mb-1 justify-end">
+              <span className="text-[10px] text-gray-600">7:43 PM</span>
+              <span className="text-xs font-bold text-red-400">HallaBol_JPR</span>
+            </div>
+            <div className="bg-primary/20 border border-primary/30 p-3 rounded-2xl rounded-tr-none text-sm text-gray-300">
+              @Akash_Ambani_Fan bro check the points table first. You guys are already packing bags! 😂🔥
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-gradient-to-r from-primary/10 to-transparent border-l-2 border-primary p-4 rounded-r-2xl">
+          <div className="flex items-center gap-2 mb-2">
+            <Flame className="w-4 h-4 text-primary" />
+            <span className="text-[10px] font-black text-primary uppercase">Trending Take</span>
+          </div>
+          <p className="text-xs text-gray-400 leading-relaxed italic">
+            "The battle between {teams[0]}'s powerplay bowling and {teams[1]}'s top order will decide 70% of the match today."
+          </p>
+        </div>
       </div>
 
       {/* Input Area */}
-      <div className="fixed bottom-[64px] left-0 right-0 p-4 bg-black/90 backdrop-blur-xl border-t border-border z-30">
-        <div className="max-w-md mx-auto">
-          {warning && (
-            <div className="mb-2 bg-red-500/10 border border-red-500/50 rounded-lg p-2 flex items-start gap-2 animate-slide-up">
-              <AlertTriangle className="w-4 h-4 text-red-500 shrink-0 mt-0.5" />
-              <p className="text-xs text-red-400 font-medium">{warning}</p>
-            </div>
-          )}
-          
-          <div className="flex items-end gap-2">
-            <textarea 
-              value={newTake}
-              onChange={(e) => setNewTake(e.target.value)}
-              placeholder="Drop your hottest take..."
-              className="flex-1 bg-card-bg border border-border rounded-xl p-3 text-sm text-white placeholder-gray-500 focus:outline-none focus:border-secondary resize-none h-[50px] max-h-[100px]"
+      <div className="p-4 bg-black/80 backdrop-blur-xl border-t border-border fixed bottom-0 left-0 right-0 z-20">
+        <div className="flex gap-2">
+          <div className="flex-1 bg-white/5 border border-white/10 rounded-2xl px-4 py-3 flex items-center gap-3">
+            <MessageSquare className="w-4 h-4 text-gray-500" />
+            <input 
+              type="text" 
+              placeholder="Join the war..." 
+              className="bg-transparent border-none outline-none text-sm w-full text-white"
             />
-            <button 
-              onClick={handlePostTake}
-              disabled={isSubmitting || !newTake.trim()}
-              className="bg-primary hover:bg-primary/90 text-black p-3 rounded-xl disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              {isSubmitting ? <span className="animate-pulse">...</span> : <Send className="w-5 h-5" />}
-            </button>
           </div>
+          <button className="bg-primary text-black w-12 h-12 rounded-2xl flex items-center justify-center shadow-lg active:scale-90 transition-transform">
+            <Send className="w-5 h-5" />
+          </button>
         </div>
       </div>
     </div>

@@ -1,13 +1,15 @@
 import Link from "next/link";
 import { ArrowLeft, Sparkles, Share2, Download } from "lucide-react";
 
-export default function DreamTeamPage({ params }: { params: { id: string } }) {
-  const teams = params.id.split("-vs-").map(t => t.toUpperCase());
+export default async function DreamTeamPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const matchId = resolvedParams.id;
+  const teams = matchId.split("-vs-").map(t => t.toUpperCase());
   
   return (
     <div className="min-h-screen pb-24 p-4 animate-slide-up">
       <header className="flex items-center gap-4 mb-8 pt-4">
-        <Link href={`/predict/${params.id}`} className="text-gray-400">
+        <Link href={`/predict/${matchId}`} className="text-gray-400">
           <ArrowLeft className="w-6 h-6" />
         </Link>
         <h1 className="text-xl font-bold flex items-center gap-2">
