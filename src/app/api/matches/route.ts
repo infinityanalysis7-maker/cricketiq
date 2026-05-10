@@ -45,10 +45,12 @@ export async function GET() {
       headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600" },
     });
   } catch (err: any) {
-    console.error("Matches API error:", err?.message || err);
+    const msg = err?.message || String(err);
+    const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED");
+    console.error("Matches API error:", msg);
     return NextResponse.json(
-      { error: "Could not fetch live match data. Please refresh in a moment." },
-      { status: 200 } // Return 200 so client handles it gracefully
+      { error: isQuota ? "quota: API quota exceeded. Live data will return at midnight." : "Could not fetch live match data. Please refresh in a moment." },
+      { status: 200 }
     );
   }
 }

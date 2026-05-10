@@ -39,9 +39,11 @@ export async function GET() {
       headers: { "Cache-Control": "public, s-maxage=1800, stale-while-revalidate=3600" },
     });
   } catch (err: any) {
-    console.error("News API error:", err?.message || err);
+    const msg = err?.message || String(err);
+    const isQuota = msg.includes("429") || msg.includes("quota") || msg.includes("RESOURCE_EXHAUSTED");
+    console.error("News API error:", msg);
     return NextResponse.json(
-      { error: "Could not fetch live news. Please refresh in a moment." },
+      { error: isQuota ? "quota: API quota exceeded." : "Could not fetch live news. Please refresh in a moment." },
       { status: 200 }
     );
   }
