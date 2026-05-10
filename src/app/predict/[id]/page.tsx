@@ -99,7 +99,7 @@ async function PredictionContent({ matchId }: { matchId: string }) {
               <h3 className="font-black text-sm uppercase">IPL 2026 FORM</h3>
             </div>
             <div className="space-y-4">
-              {Object.entries(data.currentForm || {}).map(([team, form]: [string, any]) => (
+              {Object.entries((data.currentForm as Record<string, string>) || {}).map(([team, form]) => (
                 <div key={team}>
                   <span className="text-[10px] text-gray-500 font-black uppercase mb-2 block">{team.toUpperCase()}</span>
                   <div className="flex gap-2">
