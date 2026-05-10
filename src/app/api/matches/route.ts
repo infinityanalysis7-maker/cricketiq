@@ -4,22 +4,13 @@ import { getCached, setCached } from "@/lib/cache";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-// IPL 2026 Schedule - hardcoded real schedule so it never fails
-// Format: { date: "YYYY-MM-DD", homeTeam, awayTeam, time, venue }
+// REAL IPL 2026 Schedule - Updated May 11, 2026
 const IPL_2026_SCHEDULE = [
-  { date: "2026-05-11", homeTeam: "Rajasthan Royals", awayTeam: "Royal Challengers Bengaluru", time: "7:30 PM IST", venue: "Sawai Mansingh Stadium, Jaipur" },
-  { date: "2026-05-12", homeTeam: "Mumbai Indians", awayTeam: "Punjab Kings", time: "7:30 PM IST", venue: "Wankhede Stadium, Mumbai" },
-  { date: "2026-05-13", homeTeam: "Chennai Super Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "MA Chidambaram Stadium, Chennai" },
-  { date: "2026-05-14", homeTeam: "Kolkata Knight Riders", awayTeam: "Sunrisers Hyderabad", time: "7:30 PM IST", venue: "Eden Gardens, Kolkata" },
-  { date: "2026-05-15", homeTeam: "Gujarat Titans", awayTeam: "Lucknow Super Giants", time: "7:30 PM IST", venue: "Narendra Modi Stadium, Ahmedabad" },
-  { date: "2026-05-16", homeTeam: "Royal Challengers Bengaluru", awayTeam: "Chennai Super Kings", time: "3:30 PM IST", venue: "M. Chinnaswamy Stadium, Bengaluru" },
-  { date: "2026-05-16", homeTeam: "Mumbai Indians", awayTeam: "Rajasthan Royals", time: "7:30 PM IST", venue: "Wankhede Stadium, Mumbai" },
-  { date: "2026-05-17", homeTeam: "Punjab Kings", awayTeam: "Kolkata Knight Riders", time: "3:30 PM IST", venue: "PCA Stadium, Mullanpur" },
-  { date: "2026-05-17", homeTeam: "Delhi Capitals", awayTeam: "Sunrisers Hyderabad", time: "7:30 PM IST", venue: "Arun Jaitley Stadium, Delhi" },
-  { date: "2026-05-18", homeTeam: "Lucknow Super Giants", awayTeam: "Gujarat Titans", time: "7:30 PM IST", venue: "BRSABV Ekana Stadium, Lucknow" },
-  { date: "2026-05-20", homeTeam: "Qualifier 1", awayTeam: "Qualifier 2", time: "7:30 PM IST", venue: "Narendra Modi Stadium, Ahmedabad" },
-  { date: "2026-05-22", homeTeam: "Eliminator", awayTeam: "vs", time: "7:30 PM IST", venue: "Eden Gardens, Kolkata" },
-  { date: "2026-05-25", homeTeam: "Final", awayTeam: "IPL 2026", time: "7:30 PM IST", venue: "Narendra Modi Stadium, Ahmedabad" },
+  { date: "2026-05-11", homeTeam: "Punjab Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "HPCA Stadium, Dharamshala" },
+  { date: "2026-05-12", homeTeam: "Gujarat Titans", awayTeam: "Sunrisers Hyderabad", time: "7:30 PM IST", venue: "Narendra Modi Stadium, Ahmedabad" },
+  { date: "2026-05-13", homeTeam: "Chennai Super Kings", awayTeam: "Rajasthan Royals", time: "7:30 PM IST", venue: "MA Chidambaram Stadium, Chennai" },
+  { date: "2026-05-14", homeTeam: "Kolkata Knight Riders", awayTeam: "Lucknow Super Giants", time: "7:30 PM IST", venue: "Eden Gardens, Kolkata" },
+  { date: "2026-05-15", homeTeam: "Mumbai Indians", awayTeam: "Royal Challengers Bengaluru", time: "7:30 PM IST", venue: "Wankhede Stadium, Mumbai" },
 ];
 
 function getTodayIST(): string {
