@@ -1,5 +1,5 @@
 import { getPointsTable } from "@/lib/cricketData";
-import { Table, ArrowLeft, RefreshCw, Trophy } from "lucide-react";
+import { Table, ArrowLeft, RefreshCw, Info } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -34,43 +34,31 @@ export default function PointsTablePage() {
 
 async function PointsTableContent() {
   try {
-    const points = await getPointsTable();
+    const data = await getPointsTable();
 
     return (
-      <div className="bg-card-bg border border-border rounded-3xl overflow-hidden shadow-2xl animate-slide-up">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left">
-            <thead className="bg-white/5 text-[10px] font-black text-gray-500 uppercase tracking-widest">
-              <tr>
-                <th className="px-6 py-4">RANK</th>
-                <th className="px-6 py-4">TEAM</th>
-                <th className="px-6 py-4 text-center">P</th>
-                <th className="px-6 py-4 text-center">W</th>
-                <th className="px-6 py-4 text-center">L</th>
-                <th className="px-6 py-4 text-center">NRR</th>
-                <th className="px-6 py-4 text-center text-primary">PTS</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-white/5">
-              {(points as any[]).map((p: any, i: number) => (
-                <tr key={p.team} className={`hover:bg-white/5 transition-colors ${i < 4 ? 'bg-primary/5' : ''}`}>
-                  <td className="px-6 py-5 font-black text-gray-500">
-                    {i < 4 ? <Trophy className="w-4 h-4 text-primary inline mr-2" /> : null}
-                    {i + 1}
-                  </td>
-                  <td className="px-6 py-5 font-bold text-white uppercase">{p.team}</td>
-                  <td className="px-6 py-5 text-center font-bold">{p.played}</td>
-                  <td className="px-6 py-5 text-center font-bold text-green-500">{p.won}</td>
-                  <td className="px-6 py-5 text-center font-bold text-red-500">{p.lost}</td>
-                  <td className="px-6 py-5 text-center font-medium text-gray-400">{p.nrr}</td>
-                  <td className="px-6 py-5 text-center font-black text-primary text-lg">{p.points}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+      <div className="space-y-6 animate-slide-up">
+        <div className="bg-card-bg border border-border rounded-3xl p-6 md:p-10 relative overflow-hidden shadow-2xl">
+          <div className="flex items-center gap-2 mb-6">
+            <Info className="w-5 h-5 text-secondary" />
+            <h2 className="text-xs font-black text-gray-500 uppercase tracking-widest">Real-Time Points Table (May 11)</h2>
+          </div>
+          
+          <div className="bg-black/50 border border-white/5 rounded-2xl p-6 md:p-8">
+            <p className="text-base text-gray-200 leading-relaxed font-medium whitespace-pre-wrap">
+              {data.rawText || "Points table is being updated. Please check back shortly."}
+            </p>
+          </div>
+
+          <div className="mt-8 p-4 bg-secondary/10 border border-secondary/20 rounded-xl text-center">
+            <p className="text-[10px] font-black text-secondary uppercase tracking-widest">
+              Live Standings Fetched via Gemini Search
+            </p>
+          </div>
         </div>
-        <div className="p-4 bg-white/5 text-[10px] text-gray-500 font-bold uppercase tracking-widest text-center">
-          TOP 4 TEAMS QUALIFY FOR PLAYOFFS
+
+        <div className="text-center text-[10px] text-gray-600 font-bold uppercase tracking-widest">
+          Last Updated: {new Date().toLocaleDateString()} {new Date().toLocaleTimeString()}
         </div>
       </div>
     );
@@ -78,7 +66,7 @@ async function PointsTableContent() {
     return (
       <div className="bg-primary/10 border border-primary/20 rounded-2xl p-12 text-center flex flex-col items-center gap-6 animate-pulse">
         <RefreshCw className="w-12 h-12 text-primary animate-spin" />
-        <p className="text-primary font-bold uppercase">Syncing with latest match results...</p>
+        <p className="text-primary font-bold uppercase tracking-widest">Syncing with latest results...</p>
       </div>
     );
   }

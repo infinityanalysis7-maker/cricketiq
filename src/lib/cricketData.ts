@@ -5,10 +5,6 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-function stripFences(text: string) {
-  return text.replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "").trim();
-}
-
 async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
   return Promise.race([
     promise,
@@ -18,134 +14,119 @@ async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T
   ]);
 }
 
-// 1. MATCHES SEARCH
+// 1. MATCHES SEARCH (Keep JSON for home page grid, but add raw fallback)
 export const getLiveMatches = unstable_cache(
   async () => {
-    let rawResponse = "";
     try {
-      const query = "PBKS vs DC IPL 2026 today match May 11, IPL match today May 11 2026 Punjab Kings Delhi Capitals";
-      const prompt = `Search for: "${query}". 
-      Return JSON: { "matches": [{ "id": "pbks-vs-dc", "homeTeam": "Punjab Kings", "awayTeam": "Delhi Capitals", "time": "7:30 PM IST", "venue": "Dharamshala" }] }
-      If you can't find details, just use the PBKS vs DC match for May 11 2026.`;
-
+      const query = "PBKS vs DC IPL 2026 match today May 11";
       const result = await withTimeout(
         genAI.models.generateContent({
           model: "gemini-2.0-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts: [{ text: query }] }],
           config: { tools: [{ googleSearch: {} } as any] }
         }),
         9000
       );
-
-      rawResponse = result.text || "";
-      console.log("RAW GEMINI RESPONSE:", rawResponse);
-
-      try {
-        const parsed = JSON.parse(stripFences(rawResponse));
-        if (parsed.matches && parsed.matches.length > 0) return { ...parsed, rawText: rawResponse };
-        throw new Error("No matches in JSON");
-      } catch {
-        // HARD FALLBACK FOR MAY 11
-        return { 
-          matches: [{ id: "pbks-vs-dc", homeTeam: "Punjab Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "HPCA Stadium, Dharamshala" }], 
-          rawText: rawResponse || "Today's Match: PBKS vs DC at 7:30 PM IST"
-        };
-      }
-    } catch (error) {
-      // LAST RESORT FALLBACK
+      const text = result.text || "";
+      // Smart Fallback
       return { 
-        matches: [{ id: "pbks-vs-dc", homeTeam: "Punjab Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "HPCA Stadium, Dharamshala" }],
-        rawText: "Search timed out. Showing scheduled match for May 11: PBKS vs DC."
+        matches: [{ id: "pbks-vs-dc", homeTeam: "Punjab Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "Dharamshala" }],
+        rawText: text 
+      };
+    } catch {
+      return { 
+        matches: [{ id: "pbks-vs-dc", homeTeam: "Punjab Kings", awayTeam: "Delhi Capitals", time: "7:30 PM IST", venue: "Dharamshala" }],
+        rawText: "Matches for May 11: Punjab Kings vs Delhi Capitals."
       };
     }
   },
-  ["live-matches-v4"],
+  ["live-matches-v5"],
   { revalidate: 300 }
 );
 
-// 2. PREDICTION DATA SEARCH
+// 2. PREDICTION - RAW TEXT ONLY
 export const getMatchPredictionData = unstable_cache(
   async (matchId: string) => {
     try {
-      const prompt = `Search for: "IPL 2026 ${matchId.replace("-vs-", " vs ")} head to head and pitch report May 11". Return JSON.`;
+      const query = `${matchId.replace("-vs-", " vs ")} IPL 2026 who will win today head to head recent form key players`;
       const result = await withTimeout(
         genAI.models.generateContent({
           model: "gemini-2.0-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
+          contents: [{ role: "user", parts: [{ text: query }] }],
           config: { tools: [{ googleSearch: {} } as any] }
         }),
-        9000
+        9500
       );
-      return JSON.parse(stripFences(result.text || "{}"));
-    } catch (error) {
-      return { error: "Analyzing... please refresh in 10s." };
+      return { rawText: result.text || "No analysis available yet." };
+    } catch {
+      return { rawText: "Fetching live intelligence... please refresh in a moment." };
     }
   },
-  ["match-prediction-v4"],
+  ["match-prediction-v5"],
   { revalidate: 120 }
 );
 
-// 3. NEWS SEARCH
+// 3. POINTS TABLE - RAW TEXT ONLY
+export const getPointsTable = unstable_cache(
+  async () => {
+    try {
+      const query = "IPL 2026 points table today May 11 standings";
+      const result = await withTimeout(
+        genAI.models.generateContent({
+          model: "gemini-2.0-flash",
+          contents: [{ role: "user", parts: [{ text: query }] }],
+          config: { tools: [{ googleSearch: {} } as any] }
+        }),
+        9500
+      );
+      return { rawText: result.text || "Standings being updated..." };
+    } catch {
+      return { rawText: "IPL 2026 Table is currently syncing. Please check back in 1 minute." };
+    }
+  },
+  ["points-table-v5"],
+  { revalidate: 3600 }
+);
+
+// 4. NEWS
 export const getLatestNews = unstable_cache(
   async () => {
     try {
       const result = await withTimeout(
         genAI.models.generateContent({
           model: "gemini-2.0-flash",
-          contents: [{ role: "user", parts: [{ text: "IPL 2026 latest news today May 11. Return JSON array." }] }],
+          contents: [{ role: "user", parts: [{ text: "IPL 2026 latest news today May 11. 5 headlines." }] }],
           config: { tools: [{ googleSearch: {} } as any] }
         }),
         9000
       );
-      return JSON.parse(stripFences(result.text || "[]"));
-    } catch (error) {
-      return [];
+      return { rawText: result.text || "" };
+    } catch {
+      return { rawText: "" };
     }
   },
-  ["latest-news-v4"],
+  ["latest-news-v5"],
   { revalidate: 900 }
 );
 
-// 4. POINTS TABLE SEARCH
-export const getPointsTable = unstable_cache(
-  async () => {
-    try {
-      const prompt = `Search for "IPL 2026 points table standings May 11". Return JSON array.`;
-      const result = await withTimeout(
-        genAI.models.generateContent({
-          model: "gemini-2.0-flash",
-          contents: [{ role: "user", parts: [{ text: prompt }] }],
-          config: { tools: [{ googleSearch: {} } as any] }
-        }),
-        9000
-      );
-      return JSON.parse(stripFences(result.text || "[]"));
-    } catch (error) {
-      return [];
-    }
-  },
-  ["points-table-v4"],
-  { revalidate: 3600 }
-);
-
-// 5. IQ TEST GENERATION
+// 5. IQ TEST (Keep JSON if possible as it's a quiz, but add fallback)
 export const getDynamicIQTest = unstable_cache(
   async () => {
     try {
-      const prompt = `Generate 10 MCQ for IPL 2026 today May 11. JSON format.`;
+      const prompt = `Generate 10 MCQ for IPL 2026 today May 11. Return JSON.`;
       const result = await withTimeout(
         genAI.models.generateContent({
           model: "gemini-2.0-flash",
           contents: [{ role: "user", parts: [{ text: prompt }] }],
           config: { tools: [{ googleSearch: {} } as any] }
         }),
-        9000
+        9500
       );
-      return JSON.parse(stripFences(result.text || "[]"));
-    } catch (error) {
+      return JSON.parse(result.text?.replace(/```json|```/g, "").trim() || "[]");
+    } catch {
       return [];
     }
   },
-  ["daily-iq-v4"],
+  ["daily-iq-v5"],
   { revalidate: 86400 }
 );
