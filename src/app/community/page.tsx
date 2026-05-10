@@ -1,17 +1,13 @@
 import Link from "next/link";
 import { Flame, Swords, TrendingUp, Trophy, MessageSquare } from "lucide-react";
 import { getTodayMatches } from "@/actions/cricket";
-import { unstable_cache } from "next/cache";
 
-const getCachedMatches = unstable_cache(
-  async () => getTodayMatches(),
-  ['today-matches'],
-  { revalidate: 1800 }
-);
+export const dynamic = "force-dynamic";
+export const revalidate = 1800;
 
 export default async function CommunityPage() {
-  const matchData = await getCachedMatches();
-  const matches = matchData.matches || [];
+  const matchData = await getTodayMatches();
+  const matches = (matchData as any).matches || [];
   
   const activeDebates = matches.map((match: any) => ({
     id: match.id,

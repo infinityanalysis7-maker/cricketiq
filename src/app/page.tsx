@@ -1,29 +1,20 @@
 import Link from "next/link";
 import { getTodayMatches, getLatestNews } from "@/actions/cricket";
 import { Trophy, ArrowRight, Flame, AlertCircle } from "lucide-react";
-import { unstable_cache } from "next/cache";
 
-// Cache for 30 minutes
-const getCachedMatches = unstable_cache(
-  async () => getTodayMatches(),
-  ['today-matches'],
-  { revalidate: 1800 }
-);
-
-const getCachedNews = unstable_cache(
-  async () => getLatestNews(),
-  ['latest-news'],
-  { revalidate: 1800 }
-);
+export const dynamic = "force-dynamic";
+export const revalidate = 1800; // Cache for 30 minutes
 
 export default async function Home() {
-  const matchData = await getCachedMatches();
-  const newsData = await getCachedNews();
+  const [matchData, newsData] = await Promise.all([
+    getTodayMatches(),
+    getLatestNews(),
+  ]);
 
-  const matches = matchData.matches || [];
-  const nextMatchMessage = matchData.nextMatchMessage || "No IPL matches scheduled for today.";
-  const matchError = matchData.error;
-  const newsError = newsData.error;
+  const matches = (matchData as any).matches || [];
+  const nextMatchMessage = (matchData as any).nextMatchMessage || "No IPL 2026 matches scheduled for today.";
+  const matchError = (matchData as any).error;
+  const newsError = (newsData as any).error;
 
   return (
     <div className="p-4 space-y-6 animate-slide-up">
