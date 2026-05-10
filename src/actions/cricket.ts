@@ -9,7 +9,7 @@ const ai = new GoogleGenAI({
 export async function getTodayMatches() {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.0-flash",
       contents: `Search exactly for: "IPL 2026 today match schedule". 
       Return a JSON object with this exact schema:
       {
@@ -60,7 +60,7 @@ export async function getMatchPrediction(matchId: string) {
     `;
 
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.0-flash",
       contents: prompt,
       config: {
         tools: [{ googleSearch: {} }],
@@ -78,7 +78,7 @@ export async function getMatchPrediction(matchId: string) {
 export async function getLatestNews() {
   try {
     const response = await ai.models.generateContent({
-      model: "gemini-2.5-pro",
+      model: "gemini-2.0-flash",
       contents: `Search exactly for: "IPL 2026 latest news today".
       Find at least 5 real, actual news articles published in the last 24 hours about IPL 2026.
       Return a JSON array of objects with schema:
