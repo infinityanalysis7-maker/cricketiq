@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { Trophy, ArrowRight, Flame, RefreshCw, AlertCircle, Clock, Table } from "lucide-react";
+import { Trophy, ArrowRight, Flame, RefreshCw, AlertCircle, Clock, Table, Info } from "lucide-react";
 
 function MatchSkeleton() {
   return (
@@ -34,7 +34,7 @@ function TeamLogo({ name }: { name: string }) {
 }
 
 export default function Home() {
-  const [matches, setMatches] = useState<any[]>([]);
+  const [data, setData] = useState<any>({ matches: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastUpdated, setLastUpdated] = useState<string | null>(null);
@@ -44,16 +44,11 @@ export default function Home() {
     setError(null);
     try {
       const res = await fetch("/api/matches");
-      const data = await res.json();
-      if (res.status === 503) {
-        setError(data.error);
-        setTimeout(fetchData, 10000); // Auto retry
-        return;
-      }
-      setMatches(data.matches || []);
+      const result = await res.json();
+      setData(result);
       setLastUpdated(new Date().toLocaleTimeString());
     } catch {
-      setError("Fetching live data... please wait");
+      setError("Syncing with live web... please wait");
       setTimeout(fetchData, 10000);
     } finally {
       setLoading(false);
@@ -62,9 +57,10 @@ export default function Home() {
 
   useEffect(() => {
     fetchData();
-    const interval = setInterval(fetchData, 1800000); // 30 mins
-    return () => clearInterval(interval);
   }, [fetchData]);
+
+  const matches = data.matches || [];
+  const rawText = data.rawText || "";
 
   return (
     <div className="max-w-[1200px] mx-auto p-4 pb-24 space-y-8 animate-slide-up">
@@ -74,113 +70,97 @@ export default function Home() {
           <h1 className="text-4xl font-black italic tracking-tighter">
             <span className="text-white">CRICKET</span><span className="text-primary">IQ</span>
           </h1>
-          <p className="text-sm text-gray-400 font-medium">REAL-TIME IPL 2026 SEARCH ENGINE</p>
+          <p className="text-sm text-gray-400 font-medium tracking-widest uppercase">Live IPL 2026 Engine</p>
         </div>
         <div className="flex items-center gap-3">
-          {lastUpdated && (
-            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest hidden md:block">
-              Updated: {lastUpdated}
-            </div>
-          )}
+          {lastUpdated && <div className="text-[10px] text-gray-500 font-bold uppercase hidden md:block">Synced: {lastUpdated}</div>}
           <button onClick={fetchData} className="bg-white/5 p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
             <RefreshCw className={`w-5 h-5 text-primary ${loading ? 'animate-spin' : ''}`} />
           </button>
         </div>
       </header>
 
-      {/* Main Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Matches Section */}
         <div className="lg:col-span-2 space-y-6">
           <div className="flex justify-between items-center">
             <h2 className="text-2xl font-black flex items-center gap-2">
-              <Flame className="text-primary" /> TODAY'S MATCHES
+              <Flame className="text-primary" /> MATCH HUB
             </h2>
-            {loading && <span className="text-[10px] text-primary font-bold animate-pulse">SEARCHING WEB...</span>}
+            {loading && <span className="text-[10px] text-primary font-bold animate-pulse uppercase">Searching 11 May 2026...</span>}
           </div>
 
-          {error ? (
-            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-8 text-center flex flex-col items-center gap-4">
-              <Clock className="w-10 h-10 text-primary animate-pulse" />
-              <p className="text-primary font-bold">{error}</p>
-              <p className="text-[10px] text-gray-500 font-bold uppercase">RETRYING AUTOMATICALLY IN 10S</p>
-            </div>
-          ) : loading && matches.length === 0 ? (
+          {loading && matches.length === 0 ? (
             <div className="space-y-4"><MatchSkeleton /><MatchSkeleton /></div>
-          ) : matches.length === 0 ? (
-            <div className="bg-card-bg border border-border rounded-2xl p-12 text-center">
-              <CalendarIcon className="w-12 h-12 text-gray-700 mx-auto mb-4" />
-              <p className="text-gray-400 font-medium">No IPL 2026 matches found for today.</p>
-              <button onClick={fetchData} className="mt-4 text-xs font-black text-primary underline uppercase tracking-widest">Search Again</button>
-            </div>
-          ) : (
+          ) : matches.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {matches.map((match: any) => (
                 <Link key={match.id} href={`/predict/${match.id}`}>
-                  <div className="bg-card-bg border border-border rounded-2xl p-5 hover:border-primary transition-all relative overflow-hidden group cursor-pointer h-full">
+                  <div className="bg-card-bg border border-border rounded-2xl p-5 hover:border-primary transition-all group cursor-pointer h-full relative">
                     <div className="flex justify-between items-center mb-6">
-                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{match.time}</span>
-                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black">SEARCHED LIVE</span>
+                      <span className="text-[10px] font-black text-gray-500 uppercase">{match.time}</span>
+                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black">LIVE SOURCE</span>
                     </div>
                     <div className="flex justify-between items-center gap-2">
                       <div className="flex flex-col items-center flex-1">
                         <TeamLogo name={match.homeTeam} />
-                        <span className="text-xs font-black text-center leading-tight line-clamp-1">{match.homeTeam}</span>
+                        <span className="text-xs font-black text-center line-clamp-1">{match.homeTeam}</span>
                       </div>
-                      <div className="text-xs font-black text-gray-700">VS</div>
+                      <div className="text-xs font-black text-gray-700 italic">VS</div>
                       <div className="flex flex-col items-center flex-1">
                         <TeamLogo name={match.awayTeam} />
-                        <span className="text-xs font-black text-center leading-tight line-clamp-1">{match.awayTeam}</span>
+                        <span className="text-xs font-black text-center line-clamp-1">{match.awayTeam}</span>
                       </div>
                     </div>
                     <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
-                      <span className="text-xs font-bold text-gray-400">View Live Analysis</span>
+                      <span className="text-xs font-bold text-gray-400">View Prediction</span>
                       <ArrowRight className="w-4 h-4 text-primary" />
                     </div>
                   </div>
                 </Link>
               ))}
             </div>
+          ) : rawText ? (
+            <div className="bg-card-bg border border-border rounded-2xl p-6 relative overflow-hidden">
+              <div className="flex items-center gap-2 mb-4 text-primary">
+                <Info className="w-5 h-5" />
+                <h3 className="font-black text-sm uppercase">AI Live Brief (May 11)</h3>
+              </div>
+              <p className="text-sm text-gray-300 leading-relaxed italic whitespace-pre-wrap">
+                "{rawText}"
+              </p>
+              <div className="mt-6 pt-4 border-t border-white/5">
+                <button onClick={fetchData} className="text-[10px] font-black text-primary uppercase underline">Try structured search again</button>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-card-bg border border-border rounded-2xl p-12 text-center flex flex-col items-center">
+              <Clock className="w-12 h-12 text-gray-700 mb-4 animate-pulse" />
+              <p className="text-gray-400 font-medium">No matches confirmed yet for May 11, 2026.</p>
+              <button onClick={fetchData} className="mt-4 text-xs font-black text-primary uppercase underline">Check Again</button>
+            </div>
           )}
         </div>
 
-        {/* Sidebar */}
         <div className="space-y-8">
-          {/* Quick Stats */}
           <div className="bg-gradient-to-br from-[#111] to-black border border-border rounded-2xl p-6">
-            <h3 className="font-black text-sm mb-4 flex items-center gap-2">
-              <Table className="w-4 h-4 text-secondary" /> QUICK STANDINGS
+            <h3 className="font-black text-sm mb-4 flex items-center gap-2 uppercase">
+              <Table className="w-4 h-4 text-secondary" /> IPL 2026 STANDINGS
             </h3>
             <div className="space-y-4">
-              <div className="text-[10px] text-gray-500 font-bold uppercase mb-2">Top 4 Race</div>
-              {[1, 2, 3, 4].map(i => (
-                <div key={i} className="flex justify-between items-center text-xs border-b border-white/5 pb-2">
-                  <span className="font-bold text-gray-400">#{i} TEAM NAME</span>
-                  <span className="font-black">-- PTS</span>
-                </div>
-              ))}
-              <Link href="/points" className="block text-center mt-4 text-[10px] font-black text-primary uppercase tracking-widest">View Full Table →</Link>
+              <p className="text-[10px] text-gray-500 font-bold uppercase">Latest Standings as of May 2026</p>
+              <Link href="/points" className="block w-full bg-secondary text-black font-black text-center py-3 rounded-xl text-xs">VIEW FULL TABLE</Link>
             </div>
           </div>
-
-          {/* IQ Test CTA */}
+          
           <Link href="/iq">
-            <div className="bg-primary hover:bg-primary/90 p-6 rounded-2xl transition-all group">
-              <h3 className="text-black font-black text-xl mb-1 flex items-center gap-2">
-                DAILY IQ TEST <Trophy className="w-5 h-5" />
-              </h3>
-              <p className="text-black/70 text-xs font-bold mb-4">10 New REAL questions every 24h</p>
+            <div className="bg-primary p-6 rounded-2xl group cursor-pointer transition-transform active:scale-95">
+              <h3 className="text-black font-black text-xl mb-1 flex items-center gap-2">DAILY IQ TEST <Trophy className="w-5 h-5" /></h3>
+              <p className="text-black/70 text-xs font-bold mb-4 italic">Updated with 11 May stats!</p>
               <span className="bg-black text-white text-[10px] font-black px-4 py-2 rounded-lg">PLAY NOW</span>
             </div>
           </Link>
         </div>
       </div>
     </div>
-  );
-}
-
-function CalendarIcon(props: any) {
-  return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
   );
 }
