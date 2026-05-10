@@ -5,10 +5,6 @@ const genAI = new GoogleGenAI({
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
-const model = genAI.getGenerativeModel({
-  model: "gemini-2.0-flash",
-});
-
 function stripFences(text: string) {
   return text.replace(/^```json\n?/, "").replace(/^```\n?/, "").replace(/\n?```$/, "").trim();
 }
@@ -26,20 +22,22 @@ export const getLiveMatches = unstable_cache(
         "lastUpdated": "${new Date().toISOString()}"
       }`;
 
-      const result = await model.generateContent({
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} } as any],
+        config: {
+          tools: [{ googleSearch: {} } as any],
+        }
       });
 
-      const responseText = result.response.text();
-      return JSON.parse(stripFences(responseText));
+      return JSON.parse(stripFences(result.text || "{}"));
     } catch (error) {
       console.error("Gemini Search Error (Matches):", error);
       throw error;
     }
   },
   ["live-matches"],
-  { revalidate: 1800 } // 30 minutes
+  { revalidate: 1800 }
 );
 
 // 2. PREDICTION DATA SEARCH
@@ -56,19 +54,22 @@ export const getMatchPredictionData = unstable_cache(
         "aiPrediction": { "winner": "...", "confidence": 75, "explanation": "..." }
       }`;
 
-      const result = await model.generateContent({
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} } as any],
+        config: {
+          tools: [{ googleSearch: {} } as any],
+        }
       });
 
-      return JSON.parse(stripFences(result.response.text()));
+      return JSON.parse(stripFences(result.text || "{}"));
     } catch (error) {
       console.error("Gemini Search Error (Prediction):", error);
       throw error;
     }
   },
   ["match-prediction"],
-  { revalidate: 120 } // 2 minutes for "live" feel
+  { revalidate: 120 }
 );
 
 // 3. NEWS SEARCH
@@ -81,19 +82,22 @@ export const getLatestNews = unstable_cache(
         { "title": "...", "aiSummary": "...", "source": "...", "timestamp": "..." }
       ]`;
 
-      const result = await model.generateContent({
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} } as any],
+        config: {
+          tools: [{ googleSearch: {} } as any],
+        }
       });
 
-      return JSON.parse(stripFences(result.response.text()));
+      return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
       console.error("Gemini Search Error (News):", error);
       throw error;
     }
   },
   ["latest-news"],
-  { revalidate: 900 } // 15 minutes
+  { revalidate: 900 }
 );
 
 // 4. IQ TEST GENERATION
@@ -107,19 +111,22 @@ export const getDynamicIQTest = unstable_cache(
         { "id": 1, "question": "...", "options": ["...", "..."], "correctAnswerIndex": 0, "explanation": "..." }
       ]`;
 
-      const result = await model.generateContent({
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} } as any],
+        config: {
+          tools: [{ googleSearch: {} } as any],
+        }
       });
 
-      return JSON.parse(stripFences(result.response.text()));
+      return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
       console.error("Gemini Search Error (IQ):", error);
       throw error;
     }
   },
   ["daily-iq"],
-  { revalidate: 86400 } // 24 hours
+  { revalidate: 86400 }
 );
 
 // 5. POINTS TABLE SEARCH
@@ -132,17 +139,20 @@ export const getPointsTable = unstable_cache(
         { "team": "...", "played": 10, "won": 7, "lost": 3, "points": 14, "nrr": "+0.55" }
       ]`;
 
-      const result = await model.generateContent({
+      const result = await genAI.models.generateContent({
+        model: "gemini-2.0-flash",
         contents: [{ role: "user", parts: [{ text: prompt }] }],
-        tools: [{ googleSearch: {} } as any],
+        config: {
+          tools: [{ googleSearch: {} } as any],
+        }
       });
 
-      return JSON.parse(stripFences(result.response.text()));
+      return JSON.parse(stripFences(result.text || "[]"));
     } catch (error) {
       console.error("Gemini Search Error (Points):", error);
       throw error;
     }
   },
   ["points-table"],
-  { revalidate: 3600 } // 1 hour
+  { revalidate: 3600 }
 );
