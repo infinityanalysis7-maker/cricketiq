@@ -52,7 +52,7 @@ async function PointsTableContent() {
               </tr>
             </thead>
             <tbody className="divide-y divide-white/5">
-              {points.map((p: any, i: number) => (
+              {(points as any[]).map((p: any, i: number) => (
                 <tr key={p.team} className={`hover:bg-white/5 transition-colors ${i < 4 ? 'bg-primary/5' : ''}`}>
                   <td className="px-6 py-5 font-black text-gray-500">
                     {i < 4 ? <Trophy className="w-4 h-4 text-primary inline mr-2" /> : null}

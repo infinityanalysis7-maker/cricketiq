@@ -93,7 +93,7 @@ export default function Home() {
             <div className="space-y-4"><MatchSkeleton /><MatchSkeleton /></div>
           ) : matches.length > 0 ? (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {matches.map((match: any) => (
+              {(matches as any[]).map((match: any) => (
                 <Link key={match.id} href={`/predict/${match.id}`}>
                   <div className="bg-card-bg border border-border rounded-2xl p-5 hover:border-primary transition-all group cursor-pointer h-full relative">
                     <div className="flex justify-between items-center mb-6">

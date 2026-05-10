@@ -103,7 +103,7 @@ async function PredictionContent({ matchId }: { matchId: string }) {
                 <div key={team}>
                   <span className="text-[10px] text-gray-500 font-black uppercase mb-2 block">{team.toUpperCase()}</span>
                   <div className="flex gap-2">
-                    {form.split(" ").map((res: string, i: number) => (
+                    {(form as string).split(" ").map((res: string, i: number) => (
                       <span key={i} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black ${res === 'W' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
                         {res}
                       </span>
