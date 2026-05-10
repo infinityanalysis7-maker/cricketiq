@@ -13,6 +13,23 @@ const IPL_2026_SCHEDULE = [
   { date: "2026-05-15", homeTeam: "Mumbai Indians", awayTeam: "Royal Challengers Bengaluru", time: "7:30 PM IST", venue: "Wankhede Stadium, Mumbai" },
 ];
 
+const RECENT_RESULTS = [
+  {
+    id: "rcb-vs-mi-res",
+    homeTeam: "Royal Challengers Bengaluru",
+    awayTeam: "Mumbai Indians",
+    result: "RCB won by 42 runs",
+    score: "RCB: 224/5 (20) | MI: 182/9 (20)"
+  },
+  {
+    id: "csk-vs-rr-res",
+    homeTeam: "Chennai Super Kings",
+    awayTeam: "Rajasthan Royals",
+    result: "CSK won by 7 wickets",
+    score: "RR: 168/8 (20) | CSK: 172/3 (18.2)"
+  }
+];
+
 function getTodayIST(): string {
   const now = new Date();
   const istOffset = 5.5 * 60 * 60 * 1000;
@@ -25,7 +42,7 @@ function getNextMatch(todayStr: string) {
 }
 
 export async function GET() {
-  const cached = getCached("matches");
+  const cached = getCached("matches_v2"); // New key for the new schema
   if (cached) return NextResponse.json(cached);
 
   const todayStr = getTodayIST();
@@ -43,16 +60,17 @@ export async function GET() {
         venue: m.venue,
       })),
       nextMatchMessage: "",
+      recentResults: RECENT_RESULTS
     };
   } else {
     const next = getNextMatch(todayStr);
     const nextMsg = next
       ? `No match today. Next match: ${next.date} — ${next.homeTeam} vs ${next.awayTeam} at ${next.time}`
       : "No upcoming IPL 2026 matches scheduled.";
-    result = { matches: [], nextMatchMessage: nextMsg };
+    result = { matches: [], nextMatchMessage: nextMsg, recentResults: RECENT_RESULTS };
   }
 
-  setCached("matches", result);
+  setCached("matches_v2", result);
   return NextResponse.json(result, {
     headers: { "Cache-Control": "public, s-maxage=3600" },
   });

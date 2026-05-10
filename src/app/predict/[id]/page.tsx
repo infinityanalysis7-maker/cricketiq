@@ -5,9 +5,12 @@ import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
-export default async function MatchPredictionPage({ params }: { params: { id: string } }) {
+export default async function MatchPredictionPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
+  const matchId = resolvedParams.id;
+  
   // Extract teams from id safely
-  const idParts = params.id.toUpperCase().split("-VS-");
+  const idParts = matchId.toUpperCase().split("-VS-");
   const homeTeam = idParts[0] || "TEAM A";
   const awayTeam = idParts[1] || "TEAM B";
 
@@ -34,7 +37,7 @@ export default async function MatchPredictionPage({ params }: { params: { id: st
           <p className="text-gray-400 text-sm">Analyzing 1M+ data points...</p>
         </div>
       }>
-        <PredictionContent matchId={params.id} />
+        <PredictionContent matchId={matchId} />
       </Suspense>
     </div>
   );
