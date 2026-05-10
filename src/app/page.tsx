@@ -2,200 +2,185 @@
 
 import Link from "next/link";
 import { useState, useEffect, useCallback } from "react";
-import { Trophy, ArrowRight, Flame, Calendar, History, Activity } from "lucide-react";
+import { Trophy, ArrowRight, Flame, RefreshCw, AlertCircle, Clock, Table } from "lucide-react";
 
 function MatchSkeleton() {
   return (
     <div className="bg-card-bg border border-border rounded-2xl p-4 animate-pulse">
-      <div className="flex justify-between mb-4"><div className="h-3 w-24 bg-white/10 rounded" /></div>
-      <div className="flex justify-between items-center">
-        <div className="flex flex-col items-center flex-1 gap-2"><div className="w-16 h-16 bg-white/10 rounded-full" /></div>
+      <div className="flex justify-between items-center"><div className="h-3 w-24 bg-white/10 rounded" /><div className="h-4 w-12 bg-white/10 rounded-full" /></div>
+      <div className="flex justify-between items-center mt-6">
+        <div className="flex flex-col items-center flex-1 gap-2"><div className="w-16 h-16 bg-white/10 rounded-full" /><div className="h-3 w-16 bg-white/10 rounded" /></div>
         <div className="h-5 w-8 bg-white/10 rounded mx-4" />
-        <div className="flex flex-col items-center flex-1 gap-2"><div className="w-16 h-16 bg-white/10 rounded-full" /></div>
+        <div className="flex flex-col items-center flex-1 gap-2"><div className="w-16 h-16 bg-white/10 rounded-full" /><div className="h-3 w-16 bg-white/10 rounded" /></div>
       </div>
     </div>
   );
 }
 
-const TEAM_ABBR: Record<string, { abbr: string; color: string }> = {
-  "Chennai Super Kings": { abbr: "CSK", color: "#FFFF00" },
-  "Mumbai Indians": { abbr: "MI", color: "#004BA0" },
-  "Royal Challengers Bengaluru": { abbr: "RCB", color: "#EC1C24" },
-  "Kolkata Knight Riders": { abbr: "KKR", color: "#3A225D" },
-  "Delhi Capitals": { abbr: "DC", color: "#0078BC" },
-  "Rajasthan Royals": { abbr: "RR", color: "#254AA5" },
-  "Sunrisers Hyderabad": { abbr: "SRH", color: "#F26522" },
-  "Punjab Kings": { abbr: "PBKS", color: "#ED1B24" },
-  "Gujarat Titans": { abbr: "GT", color: "#1C1C1C" },
-  "Lucknow Super Giants": { abbr: "LSG", color: "#A2AAAD" },
+const TEAM_COLORS: Record<string, string> = {
+  "CSK": "#FFFF00", "MI": "#004BA0", "RCB": "#EC1C24", "KKR": "#3A225D",
+  "DC": "#0078BC", "RR": "#254AA5", "SRH": "#F26522", "PBKS": "#ED1B24",
+  "GT": "#1C1C1C", "LSG": "#A2AAAD",
 };
 
-function TeamCircle({ name, size = "md" }: { name: string; size?: "sm" | "md" }) {
-  const info = TEAM_ABBR[name];
-  const dimension = size === "sm" ? "w-10 h-10 text-[10px]" : "w-16 h-16 text-xs";
+function TeamLogo({ name }: { name: string }) {
+  const abbr = name.split(" ").map(w => w[0]).join("").substring(0, 3).toUpperCase();
+  const color = TEAM_COLORS[abbr] || "#333";
   return (
-    <div
-      className={`${dimension} rounded-full border-2 border-border flex items-center justify-center font-black mb-2 text-center shrink-0`}
-      style={{ backgroundColor: info ? info.color + "22" : "#111", borderColor: info ? info.color + "55" : undefined }}
-    >
-      <span style={{ color: info ? info.color : "#fff" }}>{info?.abbr || name.substring(0, 3).toUpperCase()}</span>
+    <div className="w-14 h-14 rounded-full border-2 border-white/5 flex items-center justify-center font-black text-xs mb-2" style={{ backgroundColor: color + "22", color }}>
+      {abbr}
     </div>
   );
 }
 
 export default function Home() {
   const [matches, setMatches] = useState<any[]>([]);
-  const [recentResults, setRecentResults] = useState<any[]>([]);
-  const [nextMatchMessage, setNextMatchMessage] = useState("");
-  const [matchLoading, setMatchLoading] = useState(true);
-  const [news, setNews] = useState<any[]>([]);
-  const [newsLoading, setNewsLoading] = useState(true);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [lastUpdated, setLastUpdated] = useState<string | null>(null);
 
   const fetchData = useCallback(async () => {
-    setMatchLoading(true);
+    setLoading(true);
+    setError(null);
     try {
-      const [mRes, nRes] = await Promise.all([fetch("/api/matches"), fetch("/api/news")]);
-      const mData = await mRes.json();
-      const nData = await nRes.json();
-      setMatches(mData.matches || []);
-      setRecentResults(mData.recentResults || []);
-      setNextMatchMessage(mData.nextMatchMessage || "");
-      setNews(nData || []);
-    } catch (e) {
-      console.error(e);
+      const res = await fetch("/api/matches");
+      const data = await res.json();
+      if (res.status === 503) {
+        setError(data.error);
+        setTimeout(fetchData, 10000); // Auto retry
+        return;
+      }
+      setMatches(data.matches || []);
+      setLastUpdated(new Date().toLocaleTimeString());
+    } catch {
+      setError("Fetching live data... please wait");
+      setTimeout(fetchData, 10000);
     } finally {
-      setMatchLoading(false);
-      setNewsLoading(false);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
     fetchData();
-    const timer = setInterval(fetchData, 60000); // Auto-refresh every minute for live scores
-    return () => clearInterval(timer);
+    const interval = setInterval(fetchData, 1800000); // 30 mins
+    return () => clearInterval(interval);
   }, [fetchData]);
 
   return (
-    <div className="p-4 space-y-6 animate-slide-up">
+    <div className="max-w-[1200px] mx-auto p-4 pb-24 space-y-8 animate-slide-up">
+      {/* Header */}
       <header className="flex justify-between items-center pt-4">
         <div>
-          <h1 className="text-3xl font-black italic tracking-tighter">
+          <h1 className="text-4xl font-black italic tracking-tighter">
             <span className="text-white">CRICKET</span><span className="text-primary">IQ</span>
           </h1>
-          <p className="text-sm text-gray-400 font-medium">India's First AI Cricket Community</p>
+          <p className="text-sm text-gray-400 font-medium">REAL-TIME IPL 2026 SEARCH ENGINE</p>
         </div>
-        <div className="bg-card-bg p-2 rounded-full border border-border"><Flame className="w-6 h-6 text-primary animate-pulse" /></div>
+        <div className="flex items-center gap-3">
+          {lastUpdated && (
+            <div className="text-[10px] text-gray-500 font-bold uppercase tracking-widest hidden md:block">
+              Updated: {lastUpdated}
+            </div>
+          )}
+          <button onClick={fetchData} className="bg-white/5 p-2.5 rounded-xl border border-white/10 hover:bg-white/10 transition-colors">
+            <RefreshCw className={`w-5 h-5 text-primary ${loading ? 'animate-spin' : ''}`} />
+          </button>
+        </div>
       </header>
 
-      {/* Live / Today Matches */}
-      <section>
-        <div className="flex justify-between items-end mb-4">
-          <h2 className="text-xl font-bold">Matches</h2>
-          <span className="text-xs text-primary font-bold px-2 py-1 bg-primary/10 rounded-full flex items-center gap-1.5 uppercase">
-            <Activity className="w-3 h-3 animate-pulse" /> Live Tracker
-          </span>
+      {/* Main Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        {/* Matches Section */}
+        <div className="lg:col-span-2 space-y-6">
+          <div className="flex justify-between items-center">
+            <h2 className="text-2xl font-black flex items-center gap-2">
+              <Flame className="text-primary" /> TODAY'S MATCHES
+            </h2>
+            {loading && <span className="text-[10px] text-primary font-bold animate-pulse">SEARCHING WEB...</span>}
+          </div>
+
+          {error ? (
+            <div className="bg-primary/10 border border-primary/20 rounded-2xl p-8 text-center flex flex-col items-center gap-4">
+              <Clock className="w-10 h-10 text-primary animate-pulse" />
+              <p className="text-primary font-bold">{error}</p>
+              <p className="text-[10px] text-gray-500 font-bold uppercase">RETRYING AUTOMATICALLY IN 10S</p>
+            </div>
+          ) : loading && matches.length === 0 ? (
+            <div className="space-y-4"><MatchSkeleton /><MatchSkeleton /></div>
+          ) : matches.length === 0 ? (
+            <div className="bg-card-bg border border-border rounded-2xl p-12 text-center">
+              <CalendarIcon className="w-12 h-12 text-gray-700 mx-auto mb-4" />
+              <p className="text-gray-400 font-medium">No IPL 2026 matches found for today.</p>
+              <button onClick={fetchData} className="mt-4 text-xs font-black text-primary underline uppercase tracking-widest">Search Again</button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {matches.map((match: any) => (
+                <Link key={match.id} href={`/predict/${match.id}`}>
+                  <div className="bg-card-bg border border-border rounded-2xl p-5 hover:border-primary transition-all relative overflow-hidden group cursor-pointer h-full">
+                    <div className="flex justify-between items-center mb-6">
+                      <span className="text-[10px] font-black text-gray-500 uppercase tracking-widest">{match.time}</span>
+                      <span className="text-[10px] bg-primary/10 text-primary px-2 py-0.5 rounded-full font-black">SEARCHED LIVE</span>
+                    </div>
+                    <div className="flex justify-between items-center gap-2">
+                      <div className="flex flex-col items-center flex-1">
+                        <TeamLogo name={match.homeTeam} />
+                        <span className="text-xs font-black text-center leading-tight line-clamp-1">{match.homeTeam}</span>
+                      </div>
+                      <div className="text-xs font-black text-gray-700">VS</div>
+                      <div className="flex flex-col items-center flex-1">
+                        <TeamLogo name={match.awayTeam} />
+                        <span className="text-xs font-black text-center leading-tight line-clamp-1">{match.awayTeam}</span>
+                      </div>
+                    </div>
+                    <div className="mt-6 pt-4 border-t border-white/5 flex justify-between items-center">
+                      <span className="text-xs font-bold text-gray-400">View Live Analysis</span>
+                      <ArrowRight className="w-4 h-4 text-primary" />
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
         </div>
 
-        {matchLoading && matches.length === 0 ? <MatchSkeleton /> : (
-          <div className="space-y-4">
-            {matches.map((match: any) => (
-              <Link key={match.id} href={`/predict/${match.id}`}>
-                <div className={`bg-card-bg border rounded-2xl p-4 hover:border-primary transition-all relative overflow-hidden group cursor-pointer ${match.isLive ? 'border-primary shadow-[0_0_20px_rgba(255,130,0,0.1)]' : 'border-border'}`}>
-                  {match.isLive && (
-                    <div className="absolute top-0 left-0 bg-primary text-black text-[10px] font-black px-3 py-1 rounded-br-xl flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-black rounded-full animate-ping" /> LIVE
-                    </div>
-                  )}
-                  
-                  <div className="flex justify-between items-center mb-4 mt-2">
-                    <span className="text-xs text-gray-400 font-medium">{match.venue}</span>
-                    <span className="text-xs font-bold text-gray-300">{match.time}</span>
-                  </div>
-
-                  <div className="flex justify-between items-center">
-                    <div className="flex flex-col items-center flex-1">
-                      <TeamCircle name={match.homeTeam} />
-                      <span className="text-xs font-bold text-center leading-tight">{match.homeTeam}</span>
-                    </div>
-
-                    <div className="flex flex-col items-center px-4">
-                      {match.isLive ? (
-                        <div className="text-center">
-                          <div className="text-xl font-black text-white">{match.liveData.runs}/{match.liveData.wickets}</div>
-                          <div className="text-[10px] text-gray-500 font-bold uppercase">{match.liveData.overs} OV</div>
-                        </div>
-                      ) : (
-                        <div className="flex flex-col items-center">
-                          <span className="text-xs text-gray-500 font-bold mb-1">VS</span>
-                          <Trophy className="w-5 h-5 text-gray-700" />
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex flex-col items-center flex-1">
-                      <TeamCircle name={match.awayTeam} />
-                      <span className="text-xs font-bold text-center leading-tight">{match.awayTeam}</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 pt-4 border-t border-border flex justify-between items-center relative z-10">
-                    <span className="text-sm font-semibold text-gray-300">{match.isLive ? 'View Analysis' : 'Predict Now'}</span>
-                    <ArrowRight className="w-4 h-4 text-primary" />
-                  </div>
+        {/* Sidebar */}
+        <div className="space-y-8">
+          {/* Quick Stats */}
+          <div className="bg-gradient-to-br from-[#111] to-black border border-border rounded-2xl p-6">
+            <h3 className="font-black text-sm mb-4 flex items-center gap-2">
+              <Table className="w-4 h-4 text-secondary" /> QUICK STANDINGS
+            </h3>
+            <div className="space-y-4">
+              <div className="text-[10px] text-gray-500 font-bold uppercase mb-2">Top 4 Race</div>
+              {[1, 2, 3, 4].map(i => (
+                <div key={i} className="flex justify-between items-center text-xs border-b border-white/5 pb-2">
+                  <span className="font-bold text-gray-400">#{i} TEAM NAME</span>
+                  <span className="font-black">-- PTS</span>
                 </div>
-              </Link>
-            ))}
+              ))}
+              <Link href="/points" className="block text-center mt-4 text-[10px] font-black text-primary uppercase tracking-widest">View Full Table →</Link>
+            </div>
           </div>
-        )}
-      </section>
 
-      {/* Recent Results */}
-      {recentResults.length > 0 && (
-        <section>
-          <div className="flex items-center gap-2 mb-4">
-            <History className="w-5 h-5 text-primary" />
-            <h2 className="text-xl font-bold">Recent Results</h2>
-          </div>
-          <div className="space-y-3">
-            {recentResults.map((res: any) => (
-              <Link key={res.id} href={`/scorecard/${res.id}`}>
-                <div className="bg-card-bg border border-border rounded-2xl p-4 hover:border-primary transition-colors cursor-pointer group">
-                  <div className="flex items-center gap-4">
-                    <div className="flex -space-x-3">
-                      <TeamCircle name={res.homeTeam} size="sm" />
-                      <TeamCircle name={res.awayTeam} size="sm" />
-                    </div>
-                    <div className="flex-1">
-                      <p className="text-xs font-bold text-primary mb-1 group-hover:translate-x-1 transition-transform">{res.result}</p>
-                      <p className="text-[10px] text-gray-400">{res.score}</p>
-                    </div>
-                    <ChevronRightIcon className="w-4 h-4 text-gray-600" />
-                  </div>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Daily Challenges */}
-      <section>
-        <h2 className="text-xl font-bold mb-4">Daily Challenges</h2>
-        <Link href="/iq">
-          <div className="bg-gradient-to-r from-blue-900 to-black border border-secondary/30 rounded-2xl p-5 relative overflow-hidden hover:border-secondary transition-all">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-secondary/10 blur-3xl rounded-full" />
-            <h3 className="text-lg font-bold text-white mb-1">Cricket IQ Test</h3>
-            <p className="text-sm text-gray-300 mb-4">Are you in the top 1% of fans?</p>
-            <button className="bg-secondary text-black font-bold py-2 px-5 rounded-full text-sm">Play Now →</button>
-          </div>
-        </Link>
-      </section>
+          {/* IQ Test CTA */}
+          <Link href="/iq">
+            <div className="bg-primary hover:bg-primary/90 p-6 rounded-2xl transition-all group">
+              <h3 className="text-black font-black text-xl mb-1 flex items-center gap-2">
+                DAILY IQ TEST <Trophy className="w-5 h-5" />
+              </h3>
+              <p className="text-black/70 text-xs font-bold mb-4">10 New REAL questions every 24h</p>
+              <span className="bg-black text-white text-[10px] font-black px-4 py-2 rounded-lg">PLAY NOW</span>
+            </div>
+          </Link>
+        </div>
+      </div>
     </div>
   );
 }
 
-function ChevronRightIcon(props: any) {
+function CalendarIcon(props: any) {
   return (
-    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
   );
 }

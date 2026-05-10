@@ -1,5 +1,5 @@
-import { getMatchPrediction } from "@/actions/cricket";
-import { Brain, Cloud, History, TrendingUp, Share2, AlertCircle, Flame } from "lucide-react";
+import { getMatchPredictionData } from "@/lib/cricketData";
+import { Brain, Cloud, History, TrendingUp, Share2, AlertCircle, Flame, RefreshCw } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 
@@ -8,194 +8,139 @@ export const dynamic = "force-dynamic";
 export default async function MatchPredictionPage({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
   const matchId = resolvedParams.id;
-  
-  // Extract teams from id safely
   const idParts = matchId.toUpperCase().split("-VS-");
   const homeTeam = idParts[0] || "TEAM A";
   const awayTeam = idParts[1] || "TEAM B";
 
   return (
-    <div className="min-h-screen pb-24">
-      <div className="bg-gradient-to-b from-primary/20 to-black p-4 pt-8">
-        <Link href="/" className="text-gray-400 text-sm mb-4 inline-block">
+    <div className="max-w-[1200px] mx-auto min-h-screen pb-24">
+      <div className="bg-gradient-to-b from-primary/20 to-black p-4 pt-8 md:p-8">
+        <Link href="/" className="text-gray-400 text-xs font-bold uppercase tracking-widest mb-4 inline-block hover:text-white transition-colors">
           ← Back to Matches
         </Link>
         <div className="flex justify-between items-center mt-2">
-          <h1 className="text-3xl font-black">{homeTeam} vs {awayTeam}</h1>
-          <button className="bg-white/10 p-2 rounded-full backdrop-blur-md">
+          <h1 className="text-3xl md:text-5xl font-black italic tracking-tighter uppercase">{homeTeam} vs {awayTeam}</h1>
+          <button className="bg-white/10 p-3 rounded-xl backdrop-blur-md border border-white/10">
             <Share2 className="w-5 h-5 text-white" />
           </button>
         </div>
-        <div className="mt-2 text-primary font-bold text-sm tracking-widest flex items-center gap-2">
-          <Brain className="w-4 h-4" /> AI PREDICTION ENGINE
+        <div className="mt-4 flex items-center gap-2">
+          <div className="bg-primary/20 text-primary text-[10px] font-black px-3 py-1 rounded-full border border-primary/20 flex items-center gap-1.5">
+            <Brain className="w-3 h-3" /> REAL-TIME AI ANALYSIS
+          </div>
+          <div className="text-[10px] text-gray-500 font-bold uppercase">Source: Gemini Live Search</div>
         </div>
       </div>
 
-      <Suspense fallback={
-        <div className="flex flex-col items-center justify-center p-20 animate-pulse">
-          <Brain className="w-12 h-12 text-primary mb-4 animate-pulse-glow rounded-full" />
-          <p className="text-gray-400 text-sm">Analyzing 1M+ data points...</p>
-        </div>
-      }>
-        <PredictionContent matchId={matchId} />
-      </Suspense>
+      <div className="p-4 md:p-8">
+        <Suspense fallback={
+          <div className="flex flex-col items-center justify-center p-20">
+            <RefreshCw className="w-12 h-12 text-primary mb-4 animate-spin" />
+            <p className="text-gray-400 text-xs font-bold uppercase tracking-widest">Searching the web for latest stats...</p>
+          </div>
+        }>
+          <PredictionContent matchId={matchId} />
+        </Suspense>
+      </div>
     </div>
   );
 }
 
 async function PredictionContent({ matchId }: { matchId: string }) {
-  const data = await getMatchPrediction(matchId);
+  try {
+    const data = await getMatchPredictionData(matchId);
 
-  if (data.error) {
     return (
-      <div className="p-4 animate-slide-up">
-        <div className="bg-red-900/20 border border-red-500/50 rounded-2xl p-6 text-center flex flex-col items-center">
-          <AlertCircle className="w-8 h-8 text-red-500 mb-2" />
-          <p className="text-red-400 font-bold">{data.error}</p>
+      <div className="space-y-8 animate-slide-up">
+        {/* AI Prediction Card */}
+        <div className="bg-gradient-to-br from-[#111] to-[#222] border border-primary/30 rounded-3xl p-8 relative overflow-hidden shadow-2xl">
+          <div className="absolute -right-20 -top-20 w-64 h-64 bg-primary/10 blur-[100px] rounded-full" />
+          
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 relative z-10 gap-6">
+            <div>
+              <h2 className="text-xs text-gray-400 font-black mb-1 uppercase tracking-widest">AI VERDICT</h2>
+              <div className="text-5xl font-black text-primary italic tracking-tighter">
+                {data.aiPrediction?.winner?.toUpperCase() || "ANALYZING..."}
+              </div>
+              <p className="text-[10px] text-primary/60 mt-1 font-bold">PROJECTED TO WIN BASED ON CURRENT FORM</p>
+            </div>
+            <div className="text-left md:text-right">
+              <h2 className="text-xs text-gray-400 font-black mb-1 uppercase tracking-widest">CONFIDENCE</h2>
+              <div className="text-4xl font-black text-white italic">
+                {data.aiPrediction?.confidence}%
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-black/50 rounded-2xl p-6 border border-white/5 relative z-10">
+            <div className="flex gap-4 items-start">
+              <Brain className="w-6 h-6 text-primary shrink-0 mt-1" />
+              <p className="text-sm text-gray-300 leading-relaxed font-medium italic">
+                "{data.aiPrediction?.explanation}"
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Stats Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="bg-card-bg border border-border rounded-2xl p-6 col-span-1 md:col-span-2">
+            <div className="flex items-center gap-2 mb-4">
+              <History className="w-5 h-5 text-primary" />
+              <h3 className="font-black text-sm uppercase">HEAD TO HEAD RECORD</h3>
+            </div>
+            <p className="text-sm text-gray-400 leading-relaxed">{data.headToHead}</p>
+          </div>
+
+          <div className="bg-card-bg border border-border rounded-2xl p-6">
+            <div className="flex items-center gap-2 mb-6">
+              <TrendingUp className="w-5 h-5 text-secondary" />
+              <h3 className="font-black text-sm uppercase">IPL 2026 FORM</h3>
+            </div>
+            <div className="space-y-4">
+              {Object.entries(data.currentForm || {}).map(([team, form]: [string, any]) => (
+                <div key={team}>
+                  <span className="text-[10px] text-gray-500 font-black uppercase mb-2 block">{team.toUpperCase()}</span>
+                  <div className="flex gap-2">
+                    {form.split(" ").map((res: string, i: number) => (
+                      <span key={i} className={`w-8 h-8 flex items-center justify-center rounded-lg text-xs font-black ${res === 'W' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
+                        {res}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-card-bg border border-border rounded-2xl p-6 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center gap-2 mb-4">
+                <Cloud className="w-5 h-5 text-blue-400" />
+                <h3 className="font-black text-sm uppercase">VENUE & WEATHER</h3>
+              </div>
+              <p className="text-sm text-gray-300 mb-4">{data.weather}</p>
+              <div className="pt-4 border-t border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <AlertCircle className="w-4 h-4 text-orange-400" />
+                  <span className="text-[10px] font-black text-gray-500 uppercase">Pitch Report</span>
+                </div>
+                <p className="text-xs text-gray-400 italic">"{data.pitchReport}"</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  } catch (error) {
+    return (
+      <div className="bg-primary/10 border border-primary/20 rounded-2xl p-12 text-center flex flex-col items-center gap-6 animate-pulse">
+        <RefreshCw className="w-12 h-12 text-primary animate-spin" />
+        <div>
+          <h3 className="text-xl font-black text-primary uppercase mb-2">Fetching Live Intelligence</h3>
+          <p className="text-sm text-primary/70">Connecting to Gemini Search to analyze recent matches and team news. This takes about 10-15 seconds.</p>
         </div>
       </div>
     );
   }
-
-  return (
-    <div className="p-4 space-y-6 animate-slide-up">
-      {/* AI Prediction Card */}
-      <div className="bg-gradient-to-br from-[#111] to-[#222] border border-secondary/50 rounded-2xl p-6 relative overflow-hidden shadow-[0_0_30px_rgba(0,229,255,0.1)]">
-        <div className="absolute -right-10 -top-10 w-32 h-32 bg-secondary/20 blur-3xl rounded-full" />
-        
-        <div className="flex justify-between items-start mb-6 relative z-10">
-          <div>
-            <h2 className="text-sm text-gray-400 font-bold mb-1">AI VERDICT</h2>
-            <div className="text-4xl font-black text-secondary">
-              {data.aiPrediction?.winner || "UNKNOWN"}
-            </div>
-            <p className="text-xs text-secondary/80 mt-1">TO WIN THE MATCH</p>
-          </div>
-          <div className="text-right">
-            <h2 className="text-sm text-gray-400 font-bold mb-1">CONFIDENCE</h2>
-            <div className="text-3xl font-black text-white">
-              {data.aiPrediction?.confidence || 0}%
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-black/50 rounded-xl p-4 border border-white/5 relative z-10">
-          <div className="flex gap-2 items-start">
-            <Brain className="w-5 h-5 text-secondary shrink-0 mt-0.5" />
-            <p className="text-sm text-gray-300 leading-relaxed">
-              {data.aiPrediction?.explanation}
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* Make Your Prediction Button */}
-      <button className="w-full bg-primary hover:bg-primary/90 text-black font-black py-4 rounded-2xl text-lg transition-transform active:scale-95 shadow-[0_0_20px_rgba(255,130,0,0.3)]">
-        LOCK IN YOUR PREDICTION
-      </button>
-
-      {/* Quick Action Hub */}
-      <div className="grid grid-cols-2 gap-3 mt-6">
-        <Link href={`/predict/${matchId}/dream-team`}>
-          <div className="bg-card-bg border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:border-secondary transition-colors">
-            <span className="text-2xl mb-2">✨</span>
-            <span className="text-xs font-bold text-gray-300">Dream Team</span>
-          </div>
-        </Link>
-        <Link href={`/predict/${matchId}/roast`}>
-          <div className="bg-card-bg border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:border-red-500/50 transition-colors">
-            <span className="text-2xl mb-2">🔥</span>
-            <span className="text-xs font-bold text-gray-300">Roast/Praise</span>
-          </div>
-        </Link>
-        <Link href={`/predict/${matchId}/memes`}>
-          <div className="bg-card-bg border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:border-primary transition-colors">
-            <span className="text-2xl mb-2">🤣</span>
-            <span className="text-xs font-bold text-gray-300">Meme Gen</span>
-          </div>
-        </Link>
-        <Link href={`/community/${matchId}`}>
-          <div className="bg-card-bg border border-border p-4 rounded-2xl flex flex-col items-center justify-center text-center hover:border-green-500/50 transition-colors">
-            <span className="text-2xl mb-2">⚔️</span>
-            <span className="text-xs font-bold text-gray-300">Fan War</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Stats Grid */}
-      <div className="grid grid-cols-2 gap-4">
-        {/* Head to Head */}
-        <div className="bg-card-bg border border-border rounded-2xl p-4 col-span-2">
-          <div className="flex items-center gap-2 mb-3">
-            <History className="w-4 h-4 text-primary" />
-            <h3 className="font-bold text-sm">Head to Head</h3>
-          </div>
-          <p className="text-sm text-gray-400">{data.headToHead}</p>
-        </div>
-
-        {/* Current Form */}
-        <div className="bg-card-bg border border-border rounded-2xl p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <TrendingUp className="w-4 h-4 text-secondary" />
-            <h3 className="font-bold text-sm">Current Form</h3>
-          </div>
-          <div className="space-y-3">
-            <div>
-              <span className="text-xs text-gray-500 block mb-1">HOME</span>
-              <div className="flex gap-1">
-                {data.currentForm?.homeTeam?.split(" ").map((res: string, i: number) => (
-                  <span key={i} className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-bold ${res === 'W' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                    {res}
-                  </span>
-                ))}
-              </div>
-            </div>
-            <div>
-              <span className="text-xs text-gray-500 block mb-1">AWAY</span>
-              <div className="flex gap-1">
-                {data.currentForm?.awayTeam?.split(" ").map((res: string, i: number) => (
-                  <span key={i} className={`w-6 h-6 flex items-center justify-center rounded text-[10px] font-bold ${res === 'W' ? 'bg-green-500/20 text-green-500' : 'bg-red-500/20 text-red-500'}`}>
-                    {res}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Weather & Pitch */}
-        <div className="bg-card-bg border border-border rounded-2xl p-4 space-y-4">
-          <div>
-            <div className="flex items-center gap-2 mb-1">
-              <Cloud className="w-4 h-4 text-blue-400" />
-              <h3 className="font-bold text-sm">Weather</h3>
-            </div>
-            <p className="text-xs text-gray-400 line-clamp-2">{data.weather}</p>
-          </div>
-          <div className="pt-3 border-t border-border">
-            <div className="flex items-center gap-2 mb-1">
-              <AlertCircle className="w-4 h-4 text-orange-400" />
-              <h3 className="font-bold text-sm">Pitch</h3>
-            </div>
-            <p className="text-xs text-gray-400 line-clamp-2">{data.pitchReport}</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Key Matchups */}
-      <div className="bg-card-bg border border-border rounded-2xl p-4">
-        <h3 className="font-bold text-sm mb-4 flex items-center gap-2">
-          <Flame className="w-4 h-4 text-primary" /> Key Matchups
-        </h3>
-        <ul className="space-y-3">
-          {data.keyMatchups?.map((matchup: string, i: number) => (
-            <li key={i} className="bg-black p-3 rounded-lg border border-border flex items-center gap-3">
-              <span className="text-primary font-black opacity-50 text-xl">{i + 1}</span>
-              <span className="text-sm font-medium">{matchup}</span>
-            </li>
-          ))}
-        </ul>
-      </div>
-    </div>
-  );
 }

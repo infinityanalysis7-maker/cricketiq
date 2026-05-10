@@ -12,8 +12,8 @@ export const viewport: Viewport = {
 };
 
 export const metadata: Metadata = {
-  title: "CricketIQ | AI Powered Cricket Community",
-  description: "India's first AI powered cricket community. Predict matches, test your IQ, and join fan wars.",
+  title: "CricketIQ | Real-Time AI Cricket",
+  description: "Live IPL 2026 search-driven cricket community. Powered by Gemini Search.",
   manifest: "/manifest.json",
 };
 
@@ -25,18 +25,16 @@ export default function RootLayout({
   return (
     <ClerkProvider>
       <html lang="en" className="dark">
-        <body className={`${inter.className} bg-[#050505] text-foreground min-h-screen overflow-x-hidden flex justify-center`}>
-          <main className="w-full max-w-6xl mx-auto min-h-screen relative border-x border-border/30 bg-black shadow-2xl flex flex-col md:flex-row">
-            {/* Desktop Sidebar / Topbar goes here or handled in BottomNav */}
-            <div className="flex-1 w-full max-w-2xl mx-auto relative pb-20 md:pb-0 md:pt-20">
-              {children}
-            </div>
+        <body className={`${inter.className} bg-[#020202] text-foreground min-h-screen overflow-x-hidden`}>
+          <div className="flex flex-col min-h-screen">
             <BottomNav />
+            <main className="flex-1 w-full max-w-[1200px] mx-auto relative pt-0 md:pt-16 pb-20 md:pb-0">
+              {children}
+            </main>
             <PWAPrompt />
-          </main>
+          </div>
         </body>
       </html>
     </ClerkProvider>
   );
 }
-
